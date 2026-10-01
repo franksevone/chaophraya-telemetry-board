@@ -1,0 +1,9968 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ผังเส้นทางน้ำและเปรียบเทียบระดับน้ำรายวันข้ามปี (ทุกวันของทุกปี)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Sarabun', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.4);
+      border-radius: 4px;
+    }
+    
+    .river-flow {
+      stroke-dasharray: 8, 8;
+      animation: waterFlow 1.5s linear infinite;
+    }
+    .river-flow-fast {
+      stroke-dasharray: 8, 8;
+      animation: waterFlow 0.8s linear infinite;
+    }
+    .river-flow-slow {
+      stroke-dasharray: 8, 8;
+      animation: waterFlow 3s linear infinite;
+    }
+    @keyframes waterFlow {
+      from { stroke-dashoffset: 16; }
+      to { stroke-dashoffset: 0; }
+    }
+    
+    /* STRICTLY STATIC LABELS & MARKERS - NO HOVER JUMPING OR SCALING */
+    .station-marker {
+      cursor: pointer;
+    }
+    .station-marker:hover rect.pin-bg {
+      stroke: #38bdf8;
+      stroke-width: 2px;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #2563eb;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] min-h-screen p-3 md:p-6 custom-scrollbar">
+
+  <!-- Header Bar -->
+  <header class="mb-4 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 md:p-5 shadow-sm">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            ระบบโทรมาตรและผังน้ำรายวัน 365 วัน (สสน. - กรมชลประทาน)
+          </span>
+          <span class="text-xs text-[var(--muted-foreground)]">เชื่อมโยงผังน้ำและเปรียบเทียบได้ทุกวันของทุกปี</span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[var(--foreground)]">
+          ผังเส้นทางน้ำและเปรียบเทียบระดับน้ำรายวันข้ามปี
+        </h1>
+        <p class="text-xs md:text-sm text-[var(--muted-foreground)] mt-1">
+          เลือกลุ่มน้ำที่ต้องการดู เปรียบเทียบข้อมูลได้ทุกวันตลอดทั้ง 365 วัน ระหว่างปีใดก็ได้
+        </p>
+      </div>
+
+      <!-- Realtime Action & Telemetry Board Link -->
+      <div class="flex items-center gap-2.5">
+        <a href="chaophraya_telemetry_board.html" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-sm transition">
+          <span>📟 ป้ายไฟดิจิทัลเขื่อนเจ้าพระยา ➔</span>
+        </a>
+        <button id="btnRealtime" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">
+          <svg class="w-4 h-4 animate-spin" id="spinIcon" style="display:none;" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span id="btnRealtimeText">ดึงข้อมูล Real-time วันนี้ (30 ก.ย. 69)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Filter Controls -->
+    <div class="mt-4 pt-4 border-t border-[var(--border)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <!-- 1. Basin Selector -->
+      <div>
+        <label class="block text-xs font-semibold text-[var(--muted-foreground)] mb-1">ลุ่มน้ำที่ต้องการดู</label>
+        <select id="basinSelect" class="w-full bg-[var(--background)] border border-blue-500/50 text-sm rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-blue-500 font-bold text-blue-600 dark:text-blue-400">
+          <option value="chaophraya" selected>ลุ่มน้ำเจ้าพระยา (ปิง-วัง-ยม-น่าน-เจ้าพระยา)</option>
+          <option value="chimun">ลุ่มน้ำชี - มูล (ภาคอีสานสู่แม่น้ำโขง)</option>
+          <option value="maeklong">ลุ่มน้ำแม่กลอง (แควใหญ่-แควน้อย-แม่กลอง)</option>
+          <option value="bangpakong">ลุ่มน้ำบางปะกง - ปราจีนบุรี (ภาคตะวันออก)</option>
+        </select>
+      </div>
+
+      <!-- 2. Year 1 (Primary) -->
+      <div>
+        <label class="block text-xs font-semibold text-blue-500 mb-1">ปีที่ 1 (ปีหลัก / ปัจจุบัน)</label>
+        <select id="year1Select" class="w-full bg-[var(--background)] border border-blue-500/40 text-sm rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-blue-500 font-bold">
+          <option value="2569" selected>ปี 2569 (ปีปัจจุบัน)</option>
+          <option value="2568">ปี 2568</option>
+          <option value="2567">ปี 2567 (น้ำท่วมเหนือ / อีสาน)</option>
+          <option value="2566">ปี 2566 (ปีแล้ง เอลนีโญ)</option>
+          <option value="2565">ปี 2565 (พายุโนรู น้ำท่วมอุบลฯ)</option>
+          <option value="2564">ปี 2564 (พายุเตี้ยนหมู่)</option>
+          <option value="2563">ปี 2563 (พายุหลินฟา)</option>
+          <option value="2562">ปี 2562 (พายุโพดุล-คาจิกิ น้ำท่วมชี-มูล)</option>
+          <option value="2561">ปี 2561</option>
+          <option value="2560">ปี 2560</option>
+          <option value="2555">ปี 2555</option>
+          <option value="2554">ปี 2554 (มหาอุทกภัย)</option>
+        </select>
+      </div>
+
+      <!-- 3. Year 2 (Comparison) -->
+      <div>
+        <label class="block text-xs font-semibold text-amber-500 mb-1">ปีที่ 2 (ปีที่นำมาเปรียบเทียบ)</label>
+        <select id="year2Select" class="w-full bg-[var(--background)] border border-amber-500/40 text-sm rounded-lg px-3 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-amber-500 font-bold">
+          <option value="2554" selected>ปี 2554 (มหาอุทกภัย)</option>
+          <option value="2565">ปี 2565 (พายุโนรู)</option>
+          <option value="2564">ปี 2564 (พายุเตี้ยนหมู่)</option>
+          <option value="2562">ปี 2562 (น้ำท่วมใหญ่ชี-มูล)</option>
+          <option value="2566">ปี 2566 (ปีแล้ง เอลนีโญ)</option>
+          <option value="2567">ปี 2567 (น้ำท่วมเหนือ)</option>
+          <option value="2568">ปี 2568</option>
+          <option value="2569">ปี 2569 (ปีปัจจุบัน)</option>
+          <option value="2563">ปี 2563</option>
+          <option value="2561">ปี 2561</option>
+          <option value="2560">ปี 2560</option>
+          <option value="2555">ปี 2555</option>
+        </select>
+      </div>
+
+      <!-- 4. Metric Mode -->
+      <div>
+        <label class="block text-xs font-semibold text-[var(--muted-foreground)] mb-1">ค่าที่แสดงบนผัง</label>
+        <div class="grid grid-cols-2 gap-1 rounded-lg border border-[var(--border)] bg-[var(--background)] p-1 text-xs">
+          <button id="btnMetricQ" class="py-1 rounded font-medium bg-blue-600 text-white text-center">อัตราไหล (Q)</button>
+          <button id="btnMetricWL" class="py-1 rounded font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center">ระดับน้ำ (WL)</button>
+        </div>
+      </div>
+
+      <!-- 5. Sync Mode Toggle -->
+      <div>
+        <label class="block text-xs font-semibold text-[var(--muted-foreground)] mb-1">โหมดเปรียบเทียบ</label>
+        <label class="flex items-center gap-2 p-2 rounded-lg border border-[var(--border)] bg-[var(--background)] cursor-pointer text-xs">
+          <input type="checkbox" id="syncDateCheck" checked class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-[var(--foreground)]">วันเดียวกัน (Sync Date)</span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <!-- Dedicated Daily Timeline & Date Picker Controller (365 Days) -->
+  <section class="mb-5 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 md:p-5 shadow-sm space-y-4">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+      
+      <!-- Date Selectors -->
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-xs font-bold text-[var(--foreground)] flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          เลือกวันที่ต้องการดู (ทุกวันในรอบปี):
+        </span>
+
+        <!-- Day Dropdown -->
+        <div class="flex items-center gap-1">
+          <label class="text-xs text-[var(--muted-foreground)]">วันที่</label>
+          <select id="daySelect" class="bg-[var(--background)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[var(--foreground)]">
+          </select>
+        </div>
+
+        <!-- Month Dropdown -->
+        <div class="flex items-center gap-1">
+          <label class="text-xs text-[var(--muted-foreground)]">เดือน</label>
+          <select id="monthSelect" class="bg-[var(--background)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+            <option value="1">มกราคม (01)</option>
+            <option value="2">กุมภาพันธ์ (02)</option>
+            <option value="3">มีนาคม (03)</option>
+            <option value="4">เมษายน (04)</option>
+            <option value="5">พฤษภาคม (05)</option>
+            <option value="6">มิถุนายน (06)</option>
+            <option value="7">กรกฎาคม (07)</option>
+            <option value="8">สิงหาคม (08)</option>
+            <option value="9" selected>กันยายน (09)</option>
+            <option value="10">ตุลาคม (10)</option>
+            <option value="11">พฤศจิกายน (11)</option>
+            <option value="12">ธันวาคม (12)</option>
+          </select>
+        </div>
+
+        <!-- Native Date Input -->
+        <input type="date" id="nativeDatePicker" class="bg-[var(--background)] border border-[var(--border)] rounded-lg px-2.5 py-1 text-xs text-[var(--foreground)]">
+      </div>
+
+      <!-- Quick Jump Shortcut Chips -->
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <span class="text-[10px] text-[var(--muted-foreground)] mr-1">ปุ่มลัดเหตุการณ์:</span>
+        <button class="chip-btn px-2.5 py-1 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 text-[11px] font-semibold transition" data-doy="273">
+          ⚡ 30 ก.ย. (ปัจจุบัน)
+        </button>
+        <button class="chip-btn px-2.5 py-1 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 text-[11px] font-semibold transition" data-doy="288">
+          🌊 15 ต.ค. (พีกมหาอุทกภัย 54)
+        </button>
+        <button class="chip-btn px-2.5 py-1 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 text-[11px] font-semibold transition" data-doy="271">
+          🌀 28 ก.ย. (พายุโนรู 65)
+        </button>
+        <button class="chip-btn px-2.5 py-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 text-[11px] font-semibold transition" data-doy="268">
+          🌧️ 25 ก.ย. (เตี้ยนหมู่ 64)
+        </button>
+        <button class="chip-btn px-2.5 py-1 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 text-[11px] font-semibold transition" data-doy="236">
+          ⛰️ 24 ส.ค. (น้ำเหนือหลาก 67)
+        </button>
+        <button class="chip-btn px-2.5 py-1 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 text-[11px] font-semibold transition" data-doy="105">
+          ☀️ 15 เม.ย. (แล้งสุดสงกรานต์)
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Timeline Slider & Playback Stepper Controls -->
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-3">
+          <span id="timelineCurrentBadge" class="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-3 py-1 rounded-lg border border-blue-500/20">
+            📅 วันที่ 30 กันยายน (วันที่ 273 จาก 365 วัน)
+          </span>
+          <span class="text-xs text-[var(--muted-foreground)] hidden sm:inline" id="seasonPhaseText">
+            ช่วงฤดูน้ำหลากสูงสุด (Peak Flood Season)
+          </span>
+        </div>
+
+        <!-- Play / Pause / Step Buttons -->
+        <div class="flex items-center gap-2">
+          <button id="btnPrevDay" title="ถอยหลัง 1 วัน" class="px-2.5 py-1 rounded-lg bg-[var(--background)] hover:bg-[var(--border)] border border-[var(--border)] text-xs font-bold text-[var(--foreground)] transition">
+            ◀ -1 วัน
+          </button>
+          <button id="btnPlayPause" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition">
+            <span id="playIcon">⏵</span>
+            <span id="playText">เล่นไทม์ไลน์ (Play)</span>
+          </button>
+          <button id="btnNextDay" title="เดินหน้า 1 วัน" class="px-2.5 py-1 rounded-lg bg-[var(--background)] hover:bg-[var(--border)] border border-[var(--border)] text-xs font-bold text-[var(--foreground)] transition">
+            +1 วัน ▶
+          </button>
+          <select id="playSpeed" class="bg-[var(--background)] border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--foreground)]">
+            <option value="200">ความเร็ว 1x</option>
+            <option value="100" selected>ความเร็ว 2x</option>
+            <option value="50">ความเร็ว 4x</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 365 Days Range Input -->
+      <div class="relative w-full py-1">
+        <input type="range" id="doySlider" min="1" max="365" value="273" class="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer">
+      </div>
+
+      <!-- Month Ticks -->
+      <div class="grid grid-cols-12 text-[10px] text-[var(--muted-foreground)] text-center font-medium mt-1">
+        <span>ม.ค.</span>
+        <span>ก.พ.</span>
+        <span>มี.ค.</span>
+        <span>เม.ย.</span>
+        <span>พ.ค.</span>
+        <span>มิ.ย.</span>
+        <span>ก.ค.</span>
+        <span>ส.ค.</span>
+        <span class="text-blue-600 font-bold">ก.ย.</span>
+        <span>ต.ค.</span>
+        <span>พ.ย.</span>
+        <span>ธ.ค.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inflow Comparison Banner -->
+  <div class="mb-5 bg-gradient-to-r from-blue-500/10 via-amber-500/10 to-transparent border border-blue-500/20 rounded-xl p-3 px-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+      <span class="font-bold text-sm text-[var(--foreground)]" id="bannerCompareText">
+        เปรียบเทียบสถานการณ์น้ำ วันที่ 30 กันยายน: ปี 2569 เทียบกับ ปี 2554
+      </span>
+    </div>
+    <div class="flex items-center gap-4 text-[var(--muted-foreground)]">
+      <span><strong class="text-blue-500 font-bold" id="badgeYear1">ปี 2569</strong> (ปีหลัก)</span>
+      <span>vs</span>
+      <span><strong class="text-amber-500 font-bold" id="badgeYear2">ปี 2554</strong> (ปีเทียบ)</span>
+      <span class="border-l border-[var(--border)] pl-3 text-emerald-500 font-semibold" id="badgeDeltaSummary">
+        สถานการณ์น้ำ C.2 น้อยกว่าปี 2554 อยู่ 48.3%
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Grid: River Network SVG (Left 8 Cols) + Station Details & Basin Overview (Right 4 Cols) -->
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+
+    <!-- Left: River Route Map Canvas (8 Cols) -->
+    <div class="xl:col-span-8 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 md:p-5 shadow-sm">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b border-[var(--border)]">
+        <div>
+          <h2 class="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+            <span id="canvasTitle">แผนผังเส้นทางน้ำเสมือนจริง: ลุ่มน้ำเจ้าพระยา</span>
+          </h2>
+          <span class="text-xs text-[var(--muted-foreground)]" id="canvasSubtitle">
+            ป้ายชื่อคงที่ ไม่ซ้อนทับ: เขื่อนภูมิพล ➔ ตาก ➔ กำแพงเพชร ➔ คลองขลุง ➔ P.17 ➔ C.2
+          </span>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs" id="basinLegend">
+        </div>
+      </div>
+
+      <!-- Interactive SVG River Route Canvas Container -->
+      <div class="relative w-full overflow-x-auto overflow-y-hidden border border-[var(--border)] rounded-xl bg-slate-950/5 dark:bg-slate-900/30 p-2 custom-scrollbar">
+        <svg id="riverSvg" viewBox="0 0 940 980" class="w-full min-w-[800px] h-auto select-none">
+          <defs id="svgDefs"></defs>
+          <g id="riverChannelsGroup"></g>
+          <g id="stationPinsGroup"></g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Right: Station Details & Basin Overview (4 Cols) -->
+    <div class="xl:col-span-4 space-y-5">
+      
+      <!-- Selected Station Card -->
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-3">
+          <div>
+            <span id="stBadge" class="px-2 py-0.5 text-xs font-bold rounded bg-blue-500/10 text-blue-600">สถานี C.2</span>
+            <h3 id="stName" class="text-lg font-bold text-[var(--foreground)] mt-1">ค่ายจิรประวัติ ปากน้ำโพ</h3>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-[var(--muted-foreground)]">ลุ่มน้ำ</span>
+            <div id="stRiver" class="text-xs font-bold text-[var(--foreground)]">แม่น้ำเจ้าพระยา</div>
+          </div>
+        </div>
+
+        <!-- Quick Station Dropdown Selector for Active Basin -->
+        <div class="mb-3.5">
+          <label class="block text-xs font-semibold text-[var(--muted-foreground)] mb-1">เลือกจุดตรวจวัดในลุ่มน้ำนี้:</label>
+          <select id="stationSelect" class="w-full bg-[var(--background)] border border-blue-500/40 text-xs font-bold rounded-lg px-2.5 py-2 text-[var(--foreground)] focus:ring-2 focus:ring-blue-500">
+          </select>
+        </div>
+
+        <!-- Coordinates & Location Info -->
+        <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+          <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+            <span class="text-[var(--muted-foreground)]">พิกัด/ที่ตั้ง</span>
+            <div id="stLocation" class="font-semibold text-[var(--foreground)] mt-0.5">อ.เมือง จ.นครสวรรค์</div>
+          </div>
+          <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+            <span class="text-[var(--muted-foreground)]">ระดับตลิ่ง (Bank Level)</span>
+            <div id="stBank" class="font-bold text-amber-500 mt-0.5">25.70 ม.รทก.</div>
+          </div>
+          <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+            <span class="text-[var(--muted-foreground)]">ความจุวิกฤต (Q Max)</span>
+            <div id="stQMax" class="font-bold text-red-500 mt-0.5">3,735 ลบ.ม./วินาที</div>
+          </div>
+          <div class="p-2 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+            <span class="text-[var(--muted-foreground)]">สถานะความเสี่ยง</span>
+            <div id="stRisk" class="font-bold text-emerald-500 mt-0.5">ปกติ (ต่ำกว่าตลิ่ง)</div>
+          </div>
+        </div>
+
+        <!-- Daily Comparison Card for Selected Day -->
+        <div class="border border-[var(--border)] rounded-xl p-3.5 bg-[var(--background)] mb-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-[var(--muted-foreground)] uppercase" id="compDateTitle">
+              เปรียบเทียบ ณ วันที่ 30 กันยายน
+            </span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 font-medium" id="metricUnitBadge">
+              หน่วย: ลบ.ม./วินาที
+            </span>
+          </div>
+
+          <!-- Bar 1: Year 1 -->
+          <div class="mb-2.5">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-semibold text-blue-500" id="labelCompY1">ปี 2569:</span>
+              <span class="font-bold" id="valCompY1">2,425 ลบ.ม./วิ</span>
+            </div>
+            <div class="w-full bg-[var(--border)] h-2.5 rounded-full overflow-hidden">
+              <div id="barCompY1" class="h-full bg-blue-500 rounded-full transition-all duration-300" style="width: 65%;"></div>
+            </div>
+          </div>
+
+          <!-- Bar 2: Year 2 -->
+          <div class="mb-2">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-semibold text-amber-500" id="labelCompY2">ปี 2554:</span>
+              <span class="font-bold" id="valCompY2">4,689 ลบ.ม./วิ (ล้นตลิ่ง)</span>
+            </div>
+            <div class="w-full bg-[var(--border)] h-2.5 rounded-full overflow-hidden">
+              <div id="barCompY2" class="h-full bg-red-500 rounded-full transition-all duration-300" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Comparison Delta -->
+          <div class="pt-2 border-t border-[var(--border)] flex items-center justify-between text-xs">
+            <span class="text-[var(--muted-foreground)]">ผลต่างเปรียบเทียบ:</span>
+            <span id="diffCompText" class="font-bold text-emerald-500">-2,264 ลบ.ม./วิ (-48.3%)</span>
+          </div>
+        </div>
+
+        <!-- Narrative Description -->
+        <div class="p-3 rounded-xl bg-blue-500/5 border border-blue-500/15 text-xs text-[var(--muted-foreground)]">
+          <div class="font-bold text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            บทบาทการรับน้ำตามสายน้ำ
+          </div>
+          <p id="stNarrative" class="leading-relaxed">
+            จุดรวมแม่น้ำปิง (P.17) และแม่น้ำน่านที่รวมยมแล้ว (N.67) กลายเป็นจุดเริ่มต้นแม่น้ำเจ้าพระยา
+          </p>
+        </div>
+      </div>
+
+      <!-- Basin Overview Summary Card (Replaced the P.17 example box) -->
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm text-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
+          <h4 class="font-bold text-sm text-[var(--foreground)] flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span id="basinSummaryTitle">ข้อมูลภาพรวมลุ่มน้ำ</span>
+          </h4>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 font-bold" id="basinStationCountBadge">20 สถานี</span>
+        </div>
+
+        <p class="text-[11px] text-[var(--muted-foreground)] leading-relaxed" id="basinSummaryDesc">
+          ครอบคลุม 4 สายน้ำหลักภาคเหนือ (ปิง-วัง-ยม-น่าน) รวมที่ปากน้ำโพสู่แม่น้ำเจ้าพระยา และรับแม่น้ำป่าสักที่อยุธยา
+        </p>
+
+        <div class="space-y-2 pt-1 border-t border-[var(--border)] text-[11px]">
+          <div class="flex justify-between">
+            <span class="text-[var(--muted-foreground)]">ลำน้ำสายหลัก:</span>
+            <span class="font-semibold text-right max-w-[210px] text-[var(--foreground)]" id="basinSummaryRivers">ปิง, วัง, ยม, น่าน, ป่าสัก, เจ้าพระยา</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[var(--muted-foreground)]">เขื่อนกักเก็บหลัก:</span>
+            <span class="font-semibold text-right max-w-[210px] text-[var(--foreground)]" id="basinSummaryDams">เขื่อนภูมิพล, เขื่อนสิริกิติ์, เขื่อนแควน้อยฯ</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-[var(--border)]">
+            <span class="text-[var(--muted-foreground)]">สถานีคุมน้ำหลัก:</span>
+            <span class="font-bold text-blue-600 dark:text-blue-400" id="basinSummaryKeyStation">C.2 (ค่ายจิรประวัติ ปากน้ำโพ)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Bottom Section: Interactive 365-Day Daily Hydrograph Line Chart -->
+  <section class="mt-6 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 md:p-5 shadow-sm">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-3 border-b border-[var(--border)]">
+      <div>
+        <h3 class="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+          <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+          <span id="chartTitle">กราฟวิเคราะห์ระดับน้ำ / อัตราไหลรายวันตลอดทั้งปี (365 วัน): สถานี C.2</span>
+        </h3>
+        <p class="text-xs text-[var(--muted-foreground)] mt-0.5">
+          คลิกหรือลากบนกราฟเพื่อเลือกวันได้ทันที • เปรียบเทียบทั้ง 365 วันของ <span class="text-blue-500 font-bold" id="chartYear1Badge">ปี 2569</span> เทียบกับ <span class="text-amber-500 font-bold" id="chartYear2Badge">ปี 2554</span>
+        </p>
+      </div>
+
+      <!-- Peak Stats Badge -->
+      <div class="flex flex-wrap items-center gap-3 text-xs">
+        <div class="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+          <span class="text-[10px] text-blue-500 block font-semibold">พีกสูงสุดปีหลัก (Year 1)</span>
+          <span class="font-bold text-blue-600 dark:text-blue-400" id="chartPeakY1">2,680 m³/s (15 ต.ค.)</span>
+        </div>
+        <div class="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <span class="text-[10px] text-amber-500 block font-semibold">พีกสูงสุดปีเทียบ (Year 2)</span>
+          <span class="font-bold text-amber-600 dark:text-amber-400" id="chartPeakY2">4,689 m³/s (15 ต.ค.)</span>
+        </div>
+        <div class="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20">
+          <span class="text-[10px] text-red-500 block font-semibold">เกณฑ์ตลิ่ง (Bankfull)</span>
+          <span class="font-bold text-red-500" id="chartBankVal">3,735 m³/s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SVG Hydrograph Canvas Container -->
+    <div class="relative w-full overflow-hidden border border-[var(--border)] rounded-xl bg-slate-950/5 dark:bg-slate-900/30 p-2">
+      <svg id="hydrographSvg" viewBox="0 0 940 260" class="w-full h-auto cursor-crosshair select-none">
+        <defs>
+          <linearGradient id="chartGradBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0" />
+          </linearGradient>
+          <linearGradient id="chartGradAmber" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2" />
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+
+        <g id="chartGridGroup"></g>
+        <path id="curveAreaY1" fill="url(#chartGradBlue)" />
+        <path id="curveLineY2" fill="none" stroke="#f59e0b" stroke-width="2.5" />
+        <path id="curveLineY1" fill="none" stroke="#3b82f6" stroke-width="2.5" />
+
+        <line id="chartBankLine" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 4" />
+        <text id="chartBankText" fill="#ef4444" class="text-[10px] font-bold" />
+
+        <line id="chartCursorLine" stroke="#06b6d4" stroke-width="2" stroke-dasharray="3 3" />
+        <circle id="chartCursorDotY1" r="5" fill="#3b82f6" stroke="#ffffff" stroke-width="2" />
+        <circle id="chartCursorDotY2" r="5" fill="#f59e0b" stroke="#ffffff" stroke-width="2" />
+
+        <g id="chartTooltip" style="display:none;" pointer-events="none">
+          <rect id="tooltipBg" x="0" y="0" width="130" height="52" rx="6" fill="#0f172a" fill-opacity="0.95" stroke="#38bdf8" stroke-width="1.5" />
+          <text id="tooltipDate" x="8" y="16" fill="#94a3b8" class="text-[9.5px] font-medium" />
+          <text id="tooltipValY1" x="8" y="32" fill="#60a5fa" class="text-[10.5px] font-bold" />
+          <text id="tooltipValY2" x="8" y="46" fill="#fbbf24" class="text-[10.5px] font-bold" />
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <script>
+    const stationsDB = {
+  "P.1": {
+    "basin": "chaophraya",
+    "code": "P.1",
+    "name": "สะพานนวรัฐ เชียงใหม่",
+    "river": "แม่น้ำปิง",
+    "location": "อ.เมือง จ.เชียงใหม่",
+    "datum": 298,
+    "bank": 304.2,
+    "qmax": 425,
+    "cx": 120,
+    "cy": 40,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "ต้นน้ำปิงตัวเมืองเชียงใหม่ รับน้ำจากเทือกเขาเชียงดาว ไหลผ่านลำพูนลงสู่อ่างเก็บน้ำเขื่อนภูมิพล"
+  },
+  "W.1C": {
+    "basin": "chaophraya",
+    "code": "W.1C",
+    "name": "สะพานเสตุวารี ลำปาง",
+    "river": "แม่น้ำวัง",
+    "location": "อ.เมือง จ.ลำปาง",
+    "datum": 226,
+    "bank": 234.5,
+    "qmax": 487,
+    "cx": 230,
+    "cy": 40,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "รับน้ำจากดอยหลวง ไหลผ่านเขื่อนกิ่วคอหมา-กิ่วลม มุ่งหน้าลงสู่อำเภอสามเงา จ.ตาก"
+  },
+  "W.4A": {
+    "basin": "chaophraya",
+    "code": "W.4A",
+    "name": "บ้านวังหมัน (วังตอนล่าง)",
+    "river": "แม่น้ำวัง",
+    "location": "อ.สามเงา จ.ตาก",
+    "datum": 128,
+    "bank": 137,
+    "qmax": 530,
+    "cx": 205,
+    "cy": 135,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "จุดวัดน้ำแม่น้ำวังตอนล่างก่อนบรรจบแม่น้ำปิงที่ อ.บ้านตาก จ.ตาก เพื่อไหลลงสู่สถานี P.2A"
+  },
+  "P.2A": {
+    "basin": "chaophraya",
+    "code": "P.2A",
+    "name": "บ้านป่ากล้วย เมืองตาก",
+    "river": "แม่น้ำปิง",
+    "location": "อ.เมือง จ.ตาก",
+    "datum": 99,
+    "bank": 109.78,
+    "qmax": 2600,
+    "cx": 175,
+    "cy": 230,
+    "labelPos": {
+      "dx": -105,
+      "dy": -14
+    },
+    "narrative": "แม่น้ำปิงหลังรับน้ำจากแม่น้ำวังที่บ้านตาก + น้ำระบายท้ายเขื่อนภูมิพล เริ่มรวมมวลน้ำก่อนเข้ากำแพงเพชร"
+  },
+  "P.7A": {
+    "basin": "chaophraya",
+    "code": "P.7A",
+    "name": "สะพานปิง เมืองกำแพงเพชร",
+    "river": "แม่น้ำปิง",
+    "location": "อ.เมือง จ.กำแพงเพชร",
+    "datum": 68,
+    "bank": 77.07,
+    "qmax": 3000,
+    "cx": 195,
+    "cy": 300,
+    "labelPos": {
+      "dx": -105,
+      "dy": -14
+    },
+    "narrative": "★ จุดสำคัญ: มวลน้ำเพิ่มขึ้นสูงมากจากน้ำท่าลุ่มน้ำสาขาฝั่งเทือกเขาถนนธงชัยและคลองวังเจ้า"
+  },
+  "P.78": {
+    "basin": "chaophraya",
+    "code": "P.78",
+    "name": "คลองขลุง กำแพงเพชร",
+    "river": "ลำน้ำสาขาปิง",
+    "location": "อ.คลองขลุง จ.กำแพงเพชร",
+    "datum": 44,
+    "bank": 52,
+    "qmax": 650,
+    "cx": 155,
+    "cy": 340,
+    "labelPos": {
+      "dx": -105,
+      "dy": -14
+    },
+    "narrative": "ลำน้ำสาขาสำคัญ รับน้ำป่าจากอุทยานแห่งชาติคลองลานและแม่วงก์ หลากลงสมทบแม่น้ำปิงก่อนเข้าบรรพตพิสัย"
+  },
+  "P.17": {
+    "basin": "chaophraya",
+    "code": "P.17",
+    "name": "บ้านท่างิ้ว บรรพตพิสัย",
+    "river": "แม่น้ำปิง",
+    "location": "อ.บรรพตพิสัย จ.นครสวรรค์",
+    "datum": 30,
+    "bank": 38.25,
+    "qmax": 1835,
+    "cx": 250,
+    "cy": 380,
+    "labelPos": {
+      "dx": -105,
+      "dy": -14
+    },
+    "narrative": "★ จุดวัดน้ำปิงรวมทั้งหมด: รับน้ำจาก P.7A + คลองขลุง + คลองสวนหมาก สะสมจนถึง 1,861 m³/s ก่อนลงปากน้ำโพ"
+  },
+  "Y.4": {
+    "basin": "chaophraya",
+    "code": "Y.4",
+    "name": "เมืองสุโขทัย",
+    "river": "แม่น้ำยม",
+    "location": "อ.เมือง จ.สุโขทัย",
+    "datum": 44,
+    "bank": 51.59,
+    "qmax": 510,
+    "cx": 415,
+    "cy": 100,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "จุดเฝ้าระวังน้ำท่วมสุโขทัย ไหลลงทุ่งบางระกำ (Y.17) และพิจิตร"
+  },
+  "Y.17": {
+    "basin": "chaophraya",
+    "code": "Y.17",
+    "name": "บางระกำ พิษณุโลก",
+    "river": "แม่น้ำยม",
+    "location": "อ.บางระกำ จ.พิษณุโลก",
+    "datum": 31,
+    "bank": 38.25,
+    "qmax": 614,
+    "cx": 430,
+    "cy": 190,
+    "labelPos": {
+      "dx": -105,
+      "dy": -14
+    },
+    "narrative": "พื้นที่ทุ่งหน่วงน้ำบางระกำโมเดล รับน้ำหลากจากสุโขทัยเพื่อชะลอน้ำก่อนไหลลงสู่พิจิตรและชุมแสง"
+  },
+  "N.1": {
+    "basin": "chaophraya",
+    "code": "N.1",
+    "name": "สะพานพัฒนาภาคเหนือ",
+    "river": "แม่น้ำน่าน",
+    "location": "อ.เมือง จ.น่าน",
+    "datum": 190,
+    "bank": 199.2,
+    "qmax": 1066,
+    "cx": 710,
+    "cy": 40,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "ต้นน้ำน่านเหนือเขื่อนสิริกิติ์ ไหลลงสู่อ่างเก็บน้ำเขื่อนสิริกิติ์ จ.อุตรดิตถ์"
+  },
+  "N.5A": {
+    "basin": "chaophraya",
+    "code": "N.5A",
+    "name": "สะพานสุพรรณกัลยา พิษณุโลก",
+    "river": "แม่น้ำน่าน",
+    "location": "อ.เมือง จ.พิษณุโลก",
+    "datum": 33,
+    "bank": 44.87,
+    "qmax": 1365,
+    "cx": 640,
+    "cy": 190,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "รับน้ำท้ายเขื่อนสิริกิติ์ และแม่น้ำแควน้อย (เขื่อนแควน้อยบำรุงแดน) ไหลผ่านพิจิตรมุ่งหน้าสู่ชุมแสง"
+  },
+  "N.67": {
+    "basin": "chaophraya",
+    "code": "N.67",
+    "name": "วัดเกยไชยเหนือ (น่าน+ยม)",
+    "river": "แม่น้ำน่าน",
+    "location": "อ.ชุมแสง จ.นครสวรรค์",
+    "datum": 19,
+    "bank": 28.21,
+    "qmax": 1435,
+    "cx": 550,
+    "cy": 330,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "★ จุดรวมน้ำยมและน่าน: แม่น้ำยมไหลมารวมกับแม่น้ำน่านที่ ต.เกยไชย ชุมแสง รวมน้ำ 2 สายก่อนไหลไปปากน้ำโพ!"
+  },
+  "C.2": {
+    "basin": "chaophraya",
+    "code": "C.2",
+    "name": "ค่ายจิรประวัติ ปากน้ำโพ",
+    "river": "แม่น้ำเจ้าพระยา",
+    "location": "อ.เมือง จ.นครสวรรค์",
+    "datum": 16,
+    "bank": 25.7,
+    "qmax": 3735,
+    "cx": 435,
+    "cy": 420,
+    "labelPos": {
+      "dx": 14,
+      "dy": -24
+    },
+    "narrative": "จุดรวมแม่น้ำปิง (P.17) และแม่น้ำน่านที่รวมยมแล้ว (N.67) กลายเป็นจุดเริ่มต้นแม่น้ำเจ้าพระยา"
+  },
+  "C.13": {
+    "basin": "chaophraya",
+    "code": "C.13",
+    "name": "ท้ายเขื่อนเจ้าพระยา",
+    "river": "แม่น้ำเจ้าพระยา",
+    "location": "อ.สรรพยา จ.ชัยนาท",
+    "datum": 9,
+    "bank": 16.34,
+    "qmax": 2720,
+    "cx": 420,
+    "cy": 500,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "เขื่อนทดน้ำและระบายน้ำหลักภาคกลาง ผันน้ำออกคลองฝั่งซ้าย-ขวา และควบคุมอัตราการระบายลงสู่ท้ายเขื่อน"
+  },
+  "C.3": {
+    "basin": "chaophraya",
+    "code": "C.3",
+    "name": "บ้านบางพุทรา สิงห์บุรี",
+    "river": "แม่น้ำเจ้าพระยา",
+    "location": "อ.เมือง จ.สิงห์บุรี",
+    "datum": 6,
+    "bank": 13.2,
+    "qmax": 2997,
+    "cx": 420,
+    "cy": 590,
+    "labelPos": {
+      "dx": -108,
+      "dy": -16
+    },
+    "narrative": "รับน้ำท้ายเขื่อนเจ้าพระยา เป็นด่านแรกๆ ที่ได้รับผลกระทบหากเขื่อนระบายเกิน 2,000 ลบ.ม./วิ"
+  },
+  "C.7A": {
+    "basin": "chaophraya",
+    "code": "C.7A",
+    "name": "บ้านบางแก้ว อ่างทอง",
+    "river": "แม่น้ำเจ้าพระยา",
+    "location": "อ.เมือง จ.อ่างทอง",
+    "datum": 3.5,
+    "bank": 9.9,
+    "qmax": 2862,
+    "cx": 420,
+    "cy": 670,
+    "labelPos": {
+      "dx": -108,
+      "dy": -16
+    },
+    "narrative": "ตัวเมืองอ่างทองตลิ่งค่อนข้างต่ำ เมื่อระดับน้ำสูงเกิน 9.00 ม. จะเริ่มเอ่อล้นเข้าสู่ทุ่งและชุมชนริมน้ำ"
+  },
+  "S.9": {
+    "basin": "chaophraya",
+    "code": "S.9",
+    "name": "ท้ายเขื่อนพระรามหก (ป่าสัก)",
+    "river": "แม่น้ำป่าสัก",
+    "location": "อ.เมือง จ.สระบุรี",
+    "datum": 3,
+    "bank": 11.2,
+    "qmax": 1200,
+    "cx": 660,
+    "cy": 650,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "รับน้ำระบายจากเขื่อนป่าสักชลสิทธิ์ ผ่านเขื่อนพระรามหก ไหลลงไปรวมกับเจ้าพระยาที่ หน้าวัดพนัญเชิง อยุธยา"
+  },
+  "C.35": {
+    "basin": "chaophraya",
+    "code": "C.35",
+    "name": "บ้านป้อม อยุธยา",
+    "river": "แม่น้ำเจ้าพระยา",
+    "location": "อ.พระนครศรีอยุธยา จ.อยุธยา",
+    "datum": 1,
+    "bank": 4.35,
+    "qmax": 1159,
+    "cx": 425,
+    "cy": 745,
+    "labelPos": {
+      "dx": -108,
+      "dy": -16
+    },
+    "narrative": "จุดวัดน้ำก่อนรับน้ำจากแม่น้ำป่าสัก เป็นจุดตัดรอบเกาะเมืองอยุธยา"
+  },
+  "C.29B": {
+    "basin": "chaophraya",
+    "code": "C.29B",
+    "name": "ศูนย์ศิลปาชีพบางไทร",
+    "river": "แม่น้ำเจ้าพระยา",
+    "location": "อ.บางไทร จ.อยุธยา / ปทุมธานี",
+    "datum": 0.5,
+    "bank": 3,
+    "qmax": 3600,
+    "cx": 425,
+    "cy": 830,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "★ จุดคุมน้ำหลากก่อนเข้า กทม./ปริมณฑล: รวมน้ำจากเจ้าพระยา + ป่าสัก เกณฑ์เฝ้าระวัง กทม. ไม่เกิน 2,500 - 3,000 ลบ.ม./วิ"
+  },
+  "C.12": {
+    "basin": "chaophraya",
+    "code": "C.12",
+    "name": "สะพานพระพุทธยอดฟ้า / เทเวศร์",
+    "river": "แม่น้ำเจ้าพระยา",
+    "location": "เขตพระนคร กรุงเทพมหานคร",
+    "datum": 0,
+    "bank": 2.26,
+    "qmax": 3000,
+    "cx": 425,
+    "cy": 905,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "จุดเฝ้าระวังน้ำทะเลหนุนสูงในแม่น้ำเจ้าพระยาตอนล่างร่วมกับมวลน้ำเหนือหลากเข้าสู่ กทม."
+  },
+  "E.66A": {
+    "basin": "chimun",
+    "code": "E.66A",
+    "name": "สะพานชี เมืองชัยภูมิ",
+    "river": "แม่น้ำชี",
+    "location": "อ.เมือง จ.ชัยภูมิ",
+    "datum": 175,
+    "bank": 182.5,
+    "qmax": 350,
+    "cx": 140,
+    "cy": 190,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "ต้นน้ำชีรับน้ำจากเทือกเขาเพชรบูรณ์และภูเขียว ไหลมุ่งหน้าสู่อำเภอแก้งคร้อและขอนแก่น"
+  },
+  "E.22A": {
+    "basin": "chimun",
+    "code": "E.22A",
+    "name": "สะพานโกสุมพิสัย",
+    "river": "แม่น้ำชี",
+    "location": "อ.โกสุมพิสัย จ.มหาสารคาม",
+    "datum": 135,
+    "bank": 142.1,
+    "qmax": 750,
+    "cx": 350,
+    "cy": 205,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "รับน้ำชีจากชัยภูมิ + น้ำระบายท้ายเขื่อนอุบลรัตน์ (ลำน้ำพอง) เป็นจุดคอขวดน้ำหลากของมหาสารคาม"
+  },
+  "E.8A": {
+    "basin": "chimun",
+    "code": "E.8A",
+    "name": "บ้านม่วงลาด เมืองมหาสารคาม",
+    "river": "แม่น้ำชี",
+    "location": "อ.เมือง จ.มหาสารคาม / ร้อยเอ็ด",
+    "datum": 123,
+    "bank": 130.8,
+    "qmax": 920,
+    "cx": 530,
+    "cy": 235,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "รับน้ำระบายจากเขื่อนลำปาว (กาฬสินธุ์) ที่ไหลลงมาสมทบแม่น้ำชี มุ่งหน้าสู่ทุ่งกุลาร้องไห้"
+  },
+  "E.20A": {
+    "basin": "chimun",
+    "code": "E.20A",
+    "name": "มหาชนะชัย ยโสธร",
+    "river": "แม่น้ำชี",
+    "location": "อ.มหาชนะชัย จ.ยโสธร",
+    "datum": 114,
+    "bank": 120.4,
+    "qmax": 1150,
+    "cx": 640,
+    "cy": 260,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "แม่น้ำชีตอนล่าง ชะลอน้ำก่อนไหลผ่านตัวเมืองยโสธรเพื่อเตรียมไปบรรจบแม่น้ำมูล"
+  },
+  "E.1": {
+    "basin": "chimun",
+    "code": "E.1",
+    "name": "สะพานข้ามแม่น้ำชี เมืองยโสธร",
+    "river": "แม่น้ำชี",
+    "location": "อ.เมือง จ.ยโสธร",
+    "datum": 116,
+    "bank": 123.5,
+    "qmax": 1200,
+    "cx": 720,
+    "cy": 280,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "จุดวัดน้ำหลักของแม่น้ำชีก่อนไหลลงสู่แม่น้ำมูลที่ อ.กันทรารมย์ / วารินชำราบ จ.อุบลราชธานี"
+  },
+  "M.4": {
+    "basin": "chimun",
+    "code": "M.4",
+    "name": "เฉลิมพระเกียรติ นครราชสีมา",
+    "river": "แม่น้ำมูล",
+    "location": "อ.เฉลิมพระเกียรติ จ.นครราชสีมา",
+    "datum": 170,
+    "bank": 178.2,
+    "qmax": 420,
+    "cx": 160,
+    "cy": 470,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "ต้นน้ำมูลรับน้ำจากเทือกเขาสันกำแพงและดงพญาเย็น ท้ายเขื่อนลำตะคองและเขื่อนลำพระเพลิง"
+  },
+  "M.6A": {
+    "basin": "chimun",
+    "code": "M.6A",
+    "name": "สะพานสตึก บุรีรัมย์",
+    "river": "แม่น้ำมูล",
+    "location": "อ.สตึก จ.บุรีรัมย์",
+    "datum": 122,
+    "bank": 130.5,
+    "qmax": 850,
+    "cx": 360,
+    "cy": 460,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "แม่น้ำมูลตอนกลาง ไหลผ่านรอยต่อบุรีรัมย์-สุรินทร์ เข้าสู่ทุ่งกุลาร้องไห้"
+  },
+  "M.5": {
+    "basin": "chimun",
+    "code": "M.5",
+    "name": "สะพานราษีไศล ศรีสะเกษ",
+    "river": "แม่น้ำมูล",
+    "location": "อ.ราษีไศล จ.ศรีสะเกษ",
+    "datum": 112,
+    "bank": 119.8,
+    "qmax": 1400,
+    "cx": 520,
+    "cy": 450,
+    "labelPos": {
+      "dx": 12,
+      "dy": -14
+    },
+    "narrative": "ท้ายเขื่อนราษีไศลและเขื่อนหัวนา รองรับมวลน้ำหลากจากสุรินทร์และศรีสะเกษ ก่อนเข้าสู่อุบลราชธานี"
+  },
+  "M.7": {
+    "basin": "chimun",
+    "code": "M.7",
+    "name": "สะพานเสรีประชาธิปไตย อุบลฯ",
+    "river": "แม่น้ำมูล (รวมชี)",
+    "location": "อ.เมือง / วารินชำราบ จ.อุบลราชธานี",
+    "datum": 105,
+    "bank": 112,
+    "qmax": 2450,
+    "cx": 810,
+    "cy": 445,
+    "labelPos": {
+      "dx": -105,
+      "dy": -28
+    },
+    "narrative": "★ จุดยุทธศาสตร์น้ำท่วมใหญ่ภาคอีสาน: รวมน้ำจากแม่น้ำชี (E.1) และแม่น้ำมูล (M.5) ทั้งหมดก่อนระบายลงแม่น้ำโขง!"
+  },
+  "KHM": {
+    "basin": "chimun",
+    "code": "KHM",
+    "name": "เขื่อนปากมูล / โขงเจียม",
+    "river": "แม่น้ำมูลตอนล่าง",
+    "location": "อ.โขงเจียม จ.อุบลราชธานี",
+    "datum": 98,
+    "bank": 106,
+    "qmax": 3500,
+    "cx": 890,
+    "cy": 445,
+    "labelPos": {
+      "dx": -105,
+      "dy": 14
+    },
+    "narrative": "ประตูระบายน้ำปากแม่น้ำมูลลงสู่แม่น้ำโขง (แม่น้ำสองสี) หากแม่น้ำโขงหนุนสูงจะทำให้การระบายน้ำอุบลฯ ชะลอตัว"
+  },
+  "K.10A": {
+    "basin": "maeklong",
+    "code": "K.10A",
+    "name": "สะพานข้ามแม่น้ำแคว",
+    "river": "แม่น้ำแควใหญ่",
+    "location": "อ.เมือง จ.กาญจนบุรี",
+    "datum": 21,
+    "bank": 28.5,
+    "qmax": 1200,
+    "cx": 430,
+    "cy": 260,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "รับน้ำระบายจากเขื่อนศรีนครินทร์ และเขื่อนท่าทุ่งนา มุ่งหน้าสู่จุดบรรจบสองแควที่ ต.ปากแพรก"
+  },
+  "K.5": {
+    "basin": "maeklong",
+    "code": "K.5",
+    "name": "บ้านแก่งเสี้ยน / ไทรโยค",
+    "river": "แม่น้ำแควน้อย",
+    "location": "อ.เมือง / ไทรโยค จ.กาญจนบุรี",
+    "datum": 24,
+    "bank": 32.4,
+    "qmax": 1100,
+    "cx": 260,
+    "cy": 280,
+    "labelPos": {
+      "dx": -105,
+      "dy": -14
+    },
+    "narrative": "รับน้ำระบายจากเขื่อนวชิราลงกรณ (ทองผาภูมิ) ไหลผ่านไทรโยคลงสู่เมืองกาญจนบุรี"
+  },
+  "K.14": {
+    "basin": "maeklong",
+    "code": "K.14",
+    "name": "ท้ายเขื่อนแม่กลอง",
+    "river": "แม่น้ำแม่กลอง",
+    "location": "อ.ท่าม่วง จ.กาญจนบุรี",
+    "datum": 8,
+    "bank": 14.5,
+    "qmax": 2500,
+    "cx": 480,
+    "cy": 420,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "เขื่อนทดน้ำแม่กลอง ผันน้ำเข้าคลองส่งน้ำชลประทาน และควบคุมอัตราการระบายลงสู่ จ.ราชบุรี"
+  },
+  "K.11A": {
+    "basin": "maeklong",
+    "code": "K.11A",
+    "name": "สะพานบ้านโป่ง",
+    "river": "แม่น้ำแม่กลอง",
+    "location": "อ.บ้านโป่ง จ.ราชบุรี",
+    "datum": 3.5,
+    "bank": 8.9,
+    "qmax": 2200,
+    "cx": 510,
+    "cy": 500,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "จุดตรวจวัดน้ำแม่น้ำแม่กลองตอนกลาง รับน้ำท้ายเขื่อนแม่กลองก่อนเข้าสู่ตัวเมืองราชบุรี"
+  },
+  "K.13": {
+    "basin": "maeklong",
+    "code": "K.13",
+    "name": "สะพานจุฬาลงกรณ์ ราชบุรี",
+    "river": "แม่น้ำแม่กลอง",
+    "location": "อ.เมือง จ.ราชบุรี",
+    "datum": 1,
+    "bank": 4.8,
+    "qmax": 2100,
+    "cx": 530,
+    "cy": 590,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "★ จุดเฝ้าระวังน้ำหลักเมืองราชบุรี เป็นด่านสำคัญก่อนระบายลงสู่ จ.สมุทรสงคราม"
+  },
+  "K.12": {
+    "basin": "maeklong",
+    "code": "K.12",
+    "name": "ปากอ่าวแม่กลอง สมุทรสงคราม",
+    "river": "แม่น้ำแม่กลอง",
+    "location": "อ.เมือง จ.สมุทรสงคราม",
+    "datum": 0,
+    "bank": 2.1,
+    "qmax": 2000,
+    "cx": 540,
+    "cy": 680,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "จุดเฝ้าระวังน้ำทะเลหนุนสูงบริเวณดอนหอยหลอดและปากอ่าวแม่กลอง ออกสู่อ่าวไทย"
+  },
+  "Kgt.3": {
+    "basin": "bangpakong",
+    "code": "Kgt.3",
+    "name": "สะพานกบินทร์บุรี",
+    "river": "แม่น้ำปราจีนบุรี",
+    "location": "อ.กบินทร์บุรี จ.ปราจีนบุรี",
+    "datum": 3,
+    "bank": 8.85,
+    "qmax": 480,
+    "cx": 680,
+    "cy": 220,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "จุดเฝ้าระวังน้ำท่วมกบินทร์บุรี รับน้ำจากแควพระปรงและเทือกเขาบรรทัด"
+  },
+  "Kgt.27": {
+    "basin": "bangpakong",
+    "code": "Kgt.27",
+    "name": "สะพานเทศบาลปราจีนบุรี",
+    "river": "แม่น้ำปราจีนบุรี",
+    "location": "อ.เมือง จ.ปราจีนบุรี",
+    "datum": 1,
+    "bank": 4.1,
+    "qmax": 850,
+    "cx": 560,
+    "cy": 290,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "ตัวเมืองปราจีนบุรี รับน้ำหลากจากกบินทร์บุรี ก่อนไหลไปบรรจบแม่น้ำนครนายกที่ ต.บางแตน"
+  },
+  "Ny.1B": {
+    "basin": "bangpakong",
+    "code": "Ny.1B",
+    "name": "สะพานเขานางบวช",
+    "river": "แม่น้ำนครนายก",
+    "location": "อ.เมือง จ.นครนายก",
+    "datum": 3,
+    "bank": 9.2,
+    "qmax": 420,
+    "cx": 290,
+    "cy": 200,
+    "labelPos": {
+      "dx": -105,
+      "dy": -14
+    },
+    "narrative": "รับน้ำระบายจากเขื่อนขุนด่านปราการชล ไหลผ่านตัวเมืองนครนายกมุ่งหน้าสู่แม่น้ำบางปะกง"
+  },
+  "Kgt.19": {
+    "basin": "bangpakong",
+    "code": "Kgt.19",
+    "name": "สะพานเฉลิมพระเกียรติ ฉะเชิงเทรา",
+    "river": "แม่น้ำบางปะกง",
+    "location": "อ.เมือง จ.ฉะเชิงเทรา",
+    "datum": 0,
+    "bank": 2.2,
+    "qmax": 1800,
+    "cx": 480,
+    "cy": 560,
+    "labelPos": {
+      "dx": 14,
+      "dy": -16
+    },
+    "narrative": "★ จุดวัดน้ำแม่น้ำบางปะกงหลัก รวมแม่น้ำปราจีนบุรีและนครนายก ควบคุมน้ำหลากและน้ำเค็มรุก"
+  }
+};
+    const basinsDB = {
+  "chaophraya": {
+    "key": "chaophraya",
+    "name": "ลุ่มน้ำเจ้าพระยา (ปิง-วัง-ยม-น่าน-ป่าสัก-เจ้าพระยา)",
+    "defaultStation": "C.2",
+    "summaryStation": "C.2",
+    "viewBox": "0 0 940 980",
+    "rivers": "ปิง, วัง, ยม, น่าน, ป่าสัก, ท่าจีน, เจ้าพระยา",
+    "dams": "เขื่อนภูมิพล, เขื่อนสิริกิติ์, เขื่อนแควน้อยฯ, เขื่อนป่าสักชลสิทธิ์, เขื่อนเจ้าพระยา",
+    "desc": "ครอบคลุม 4 สายน้ำหลักภาคเหนือ (ปิง-วัง-ยม-น่าน) รวมที่ปากน้ำโพสู่แม่น้ำเจ้าพระยา และรับแม่น้ำป่าสักที่อยุธยา"
+  },
+  "chimun": {
+    "key": "chimun",
+    "name": "ลุ่มน้ำชี - มูล (ภาคอีสานสู่แม่น้ำโขง)",
+    "defaultStation": "M.7",
+    "summaryStation": "M.7",
+    "viewBox": "0 0 940 760",
+    "rivers": "แม่น้ำชี, แม่น้ำพอง, ลำปาว, แม่น้ำมูล, ลำตะคอง, ลำเซบาย",
+    "dams": "เขื่อนอุบลรัตน์, เขื่อนลำปาว, เขื่อนราษีไศล, เขื่อนหัวนา, เขื่อนปากมูล",
+    "desc": "ลุ่มน้ำสายเลือดใหญ่ของภาคอีสาน แม่น้ำชีจากชัยภูมิรวมกับแม่น้ำมูลที่อุบลราชธานี (M.7) ก่อนไหลผ่านเขื่อนปากมูลลงสู่แม่น้ำโขง"
+  },
+  "maeklong": {
+    "key": "maeklong",
+    "name": "ลุ่มน้ำแม่กลอง (แควใหญ่-แควน้อย-แม่กลอง)",
+    "defaultStation": "K.13",
+    "summaryStation": "K.14",
+    "viewBox": "0 0 940 760",
+    "rivers": "แม่น้ำแควใหญ่, แม่น้ำแควน้อย, แม่น้ำแม่กลอง",
+    "dams": "เขื่อนศรีนครินทร์, เขื่อนท่าทุ่งนา, เขื่อนวชิราลงกรณ, เขื่อนแม่กลอง",
+    "desc": "กำเนิดจากลำน้ำแควใหญ่ (เขื่อนศรีนครินทร์) และแควน้อย (เขื่อนวชิราลงกรณ) บรรจบกันที่เมืองกาญจนบุรี ผ่านเขื่อนแม่กลองสู่ราชบุรีและสมุทรสงคราม"
+  },
+  "bangpakong": {
+    "key": "bangpakong",
+    "name": "ลุ่มน้ำบางปะกง - ปราจีนบุรี (ภาคตะวันออก)",
+    "defaultStation": "Kgt.19",
+    "summaryStation": "Kgt.19",
+    "viewBox": "0 0 940 760",
+    "rivers": "แม่น้ำนครนายก, แม่น้ำปราจีนบุรี, แควพระปรง, แม่น้ำบางปะกง",
+    "dams": "เขื่อนขุนด่านปราการชล, เขื่อนคลองสียัด, ประตูระบายน้ำบางขนาก",
+    "desc": "รวมแม่น้ำนครนายก (เขื่อนขุนด่านปราการชล) และแม่น้ำปราจีนบุรี (กบินทร์บุรี) ที่ อ.บ้านสร้าง กลายเป็นแม่น้ำบางปะกงสู่ฉะเชิงเทราและอ่าวไทย"
+  }
+};
+    const anchorDays = [1,60,120,181,212,235,258,268,273,288,304,320,345,365];
+    const yearHydroProfiles = {
+  "2554": {
+    "P.1": [
+      34,
+      21,
+      17,
+      94,
+      234,
+      361,
+      489,
+      531,
+      553,
+      574,
+      361,
+      149,
+      64,
+      38
+    ],
+    "W.1C": [
+      39,
+      24,
+      19,
+      107,
+      268,
+      414,
+      560,
+      609,
+      633,
+      657,
+      414,
+      170,
+      73,
+      44
+    ],
+    "W.4A": [
+      42,
+      27,
+      21,
+      117,
+      292,
+      451,
+      610,
+      663,
+      689,
+      716,
+      451,
+      186,
+      80,
+      48
+    ],
+    "P.2A": [
+      208,
+      130,
+      104,
+      572,
+      1430,
+      2210,
+      2990,
+      3250,
+      3380,
+      3510,
+      2210,
+      910,
+      390,
+      234
+    ],
+    "P.7A": [
+      240,
+      150,
+      120,
+      660,
+      1650,
+      2550,
+      3450,
+      3750,
+      3900,
+      4050,
+      2550,
+      1050,
+      450,
+      270
+    ],
+    "P.78": [
+      52,
+      33,
+      26,
+      143,
+      358,
+      553,
+      747,
+      813,
+      845,
+      878,
+      553,
+      227,
+      98,
+      59
+    ],
+    "P.17": [
+      147,
+      92,
+      73,
+      404,
+      1009,
+      1560,
+      2110,
+      2294,
+      2450,
+      2477,
+      1560,
+      642,
+      275,
+      165
+    ],
+    "Y.4": [
+      41,
+      26,
+      20,
+      112,
+      281,
+      434,
+      587,
+      638,
+      663,
+      689,
+      434,
+      179,
+      77,
+      46
+    ],
+    "Y.17": [
+      49,
+      31,
+      25,
+      135,
+      338,
+      522,
+      706,
+      768,
+      798,
+      829,
+      522,
+      215,
+      92,
+      55
+    ],
+    "N.1": [
+      85,
+      53,
+      43,
+      235,
+      586,
+      906,
+      1226,
+      1333,
+      1386,
+      1439,
+      906,
+      373,
+      160,
+      96
+    ],
+    "N.5A": [
+      109,
+      68,
+      55,
+      300,
+      751,
+      1160,
+      1570,
+      1706,
+      1775,
+      1843,
+      1160,
+      478,
+      205,
+      123
+    ],
+    "N.67": [
+      115,
+      72,
+      57,
+      316,
+      789,
+      1220,
+      1650,
+      1794,
+      2890,
+      1937,
+      1220,
+      502,
+      215,
+      129
+    ],
+    "C.2": [
+      299,
+      187,
+      149,
+      822,
+      2054,
+      3175,
+      4295,
+      4669,
+      4689,
+      5042,
+      3175,
+      1307,
+      560,
+      336
+    ],
+    "C.13": [
+      218,
+      136,
+      109,
+      598,
+      1496,
+      2312,
+      3128,
+      3400,
+      3721,
+      3672,
+      2312,
+      952,
+      408,
+      245
+    ],
+    "C.3": [
+      240,
+      150,
+      120,
+      659,
+      1648,
+      2547,
+      3447,
+      3746,
+      3896,
+      4046,
+      2547,
+      1049,
+      450,
+      270
+    ],
+    "C.7A": [
+      229,
+      143,
+      114,
+      630,
+      1574,
+      2433,
+      3291,
+      3578,
+      3721,
+      3864,
+      2433,
+      1002,
+      429,
+      258
+    ],
+    "S.9": [
+      96,
+      60,
+      48,
+      264,
+      660,
+      1020,
+      1380,
+      1500,
+      1560,
+      1620,
+      1020,
+      420,
+      180,
+      108
+    ],
+    "C.35": [
+      93,
+      58,
+      46,
+      255,
+      637,
+      985,
+      1333,
+      1449,
+      1507,
+      1565,
+      985,
+      406,
+      174,
+      104
+    ],
+    "C.29B": [
+      288,
+      180,
+      144,
+      792,
+      1980,
+      3060,
+      4140,
+      4500,
+      4680,
+      4860,
+      3060,
+      1260,
+      540,
+      324
+    ],
+    "C.12": [
+      240,
+      150,
+      120,
+      660,
+      1650,
+      2550,
+      3450,
+      3750,
+      3900,
+      4050,
+      2550,
+      1050,
+      450,
+      270
+    ],
+    "E.66A": [
+      28,
+      18,
+      14,
+      77,
+      193,
+      298,
+      402,
+      438,
+      455,
+      473,
+      298,
+      122,
+      53,
+      32
+    ],
+    "E.22A": [
+      60,
+      38,
+      30,
+      165,
+      413,
+      638,
+      862,
+      938,
+      975,
+      1013,
+      638,
+      263,
+      113,
+      68
+    ],
+    "E.8A": [
+      74,
+      46,
+      37,
+      202,
+      506,
+      782,
+      1058,
+      1150,
+      1196,
+      1242,
+      782,
+      322,
+      138,
+      83
+    ],
+    "E.20A": [
+      92,
+      58,
+      46,
+      253,
+      633,
+      978,
+      1323,
+      1438,
+      1495,
+      1553,
+      978,
+      403,
+      173,
+      104
+    ],
+    "E.1": [
+      96,
+      60,
+      48,
+      264,
+      660,
+      1020,
+      1380,
+      1500,
+      1560,
+      1620,
+      1020,
+      420,
+      180,
+      108
+    ],
+    "M.4": [
+      34,
+      21,
+      17,
+      92,
+      231,
+      357,
+      483,
+      525,
+      546,
+      567,
+      357,
+      147,
+      63,
+      38
+    ],
+    "M.6A": [
+      68,
+      43,
+      34,
+      187,
+      468,
+      723,
+      977,
+      1063,
+      1105,
+      1148,
+      723,
+      298,
+      128,
+      77
+    ],
+    "M.5": [
+      112,
+      70,
+      56,
+      308,
+      770,
+      1190,
+      1610,
+      1750,
+      1820,
+      1890,
+      1190,
+      490,
+      210,
+      126
+    ],
+    "M.7": [
+      196,
+      123,
+      98,
+      539,
+      1348,
+      2083,
+      2818,
+      3063,
+      4150,
+      3308,
+      2083,
+      858,
+      368,
+      221
+    ],
+    "KHM": [
+      280,
+      175,
+      140,
+      770,
+      1925,
+      2975,
+      4025,
+      4375,
+      4550,
+      4725,
+      2975,
+      1225,
+      525,
+      315
+    ],
+    "K.10A": [
+      96,
+      60,
+      48,
+      264,
+      660,
+      1020,
+      1380,
+      1500,
+      1560,
+      1620,
+      1020,
+      420,
+      180,
+      108
+    ],
+    "K.5": [
+      88,
+      55,
+      44,
+      242,
+      605,
+      935,
+      1265,
+      1375,
+      1430,
+      1485,
+      935,
+      385,
+      165,
+      99
+    ],
+    "K.14": [
+      200,
+      125,
+      100,
+      550,
+      1375,
+      2125,
+      2875,
+      3125,
+      3250,
+      3375,
+      2125,
+      875,
+      375,
+      225
+    ],
+    "K.11A": [
+      176,
+      110,
+      88,
+      484,
+      1210,
+      1870,
+      2530,
+      2750,
+      2860,
+      2970,
+      1870,
+      770,
+      330,
+      198
+    ],
+    "K.13": [
+      168,
+      105,
+      84,
+      462,
+      1155,
+      1785,
+      2415,
+      2625,
+      2730,
+      2835,
+      1785,
+      735,
+      315,
+      189
+    ],
+    "K.12": [
+      160,
+      100,
+      80,
+      440,
+      1100,
+      1700,
+      2300,
+      2500,
+      2600,
+      2700,
+      1700,
+      700,
+      300,
+      180
+    ],
+    "Kgt.3": [
+      38,
+      24,
+      19,
+      106,
+      264,
+      408,
+      552,
+      600,
+      624,
+      648,
+      408,
+      168,
+      72,
+      43
+    ],
+    "Kgt.27": [
+      68,
+      43,
+      34,
+      187,
+      468,
+      723,
+      977,
+      1063,
+      1105,
+      1148,
+      723,
+      298,
+      128,
+      77
+    ],
+    "Ny.1B": [
+      34,
+      21,
+      17,
+      92,
+      231,
+      357,
+      483,
+      525,
+      546,
+      567,
+      357,
+      147,
+      63,
+      38
+    ],
+    "Kgt.19": [
+      144,
+      90,
+      72,
+      396,
+      990,
+      1530,
+      2070,
+      2250,
+      2340,
+      2430,
+      1530,
+      630,
+      270,
+      162
+    ]
+  },
+  "2555": {
+    "P.1": [
+      26.9,
+      16,
+      13.6,
+      65.4,
+      162.6,
+      259.4,
+      355,
+      383.2,
+      397.6,
+      404.3,
+      245.1,
+      100.7,
+      45.9,
+      29.2
+    ],
+    "W.1C": [
+      30.6,
+      18.1,
+      15.2,
+      74.2,
+      186.1,
+      297.2,
+      406.7,
+      439.3,
+      454.9,
+      463,
+      280.9,
+      115,
+      52.4,
+      33.5
+    ],
+    "W.4A": [
+      33.2,
+      20.3,
+      16.8,
+      81.3,
+      203,
+      323.7,
+      442.8,
+      478.2,
+      495.4,
+      504.3,
+      306.1,
+      125.5,
+      57.7,
+      36.7
+    ],
+    "P.2A": [
+      164.3,
+      97.2,
+      82.2,
+      397.3,
+      993.2,
+      1587.6,
+      2171,
+      2343.6,
+      2430,
+      2472.6,
+      1500.2,
+      615.2,
+      280.8,
+      179.4
+    ],
+    "P.7A": [
+      189.6,
+      112.2,
+      94.8,
+      458.4,
+      1146,
+      1831.8,
+      2505,
+      2704.2,
+      2803.8,
+      2853,
+      1731,
+      709.8,
+      324,
+      207
+    ],
+    "P.78": [
+      41.1,
+      24.6,
+      20.5,
+      99.3,
+      248.8,
+      397.2,
+      542.5,
+      586.2,
+      607.7,
+      618.4,
+      375.3,
+      153.5,
+      70.7,
+      45.1
+    ],
+    "P.17": [
+      115.9,
+      68.9,
+      57.9,
+      280.5,
+      700.7,
+      1120.7,
+      1532.1,
+      1654.3,
+      1752.4,
+      1744.9,
+      1058.9,
+      434.1,
+      198.1,
+      126.4
+    ],
+    "Y.4": [
+      32.2,
+      19.3,
+      15.8,
+      78,
+      195.3,
+      311.8,
+      426.1,
+      459.9,
+      476.5,
+      485.3,
+      294.6,
+      121,
+      55.6,
+      35.1
+    ],
+    "Y.17": [
+      38.9,
+      23,
+      19.5,
+      93.8,
+      234.7,
+      375,
+      512.8,
+      553.8,
+      573.7,
+      584.1,
+      354.4,
+      145.3,
+      66.4,
+      42.4
+    ],
+    "N.1": [
+      67.4,
+      39.6,
+      33.8,
+      163.2,
+      407.1,
+      650.6,
+      890,
+      961.3,
+      996.2,
+      1013.5,
+      614.9,
+      252,
+      115.1,
+      73.7
+    ],
+    "N.5A": [
+      86.3,
+      50.8,
+      43.2,
+      208.4,
+      521.7,
+      833.2,
+      1139.9,
+      1230.1,
+      1276,
+      1298.3,
+      787.5,
+      323,
+      147.5,
+      94.4
+    ],
+    "N.67": [
+      90.6,
+      53.9,
+      45.2,
+      219.4,
+      547.9,
+      876.4,
+      1198.1,
+      1293.8,
+      1935.3,
+      1364.5,
+      828.1,
+      339.5,
+      154.9,
+      98.8
+    ],
+    "C.2": [
+      236,
+      140,
+      117.9,
+      570.8,
+      1426.5,
+      2280.8,
+      3118.6,
+      3367,
+      3394.1,
+      3551.8,
+      2155.2,
+      883.6,
+      403.3,
+      257.5
+    ],
+    "C.13": [
+      172.2,
+      101.6,
+      85.9,
+      415.3,
+      1039,
+      1661,
+      2271.2,
+      2451.6,
+      2649.6,
+      2586.7,
+      1569.4,
+      643.7,
+      293.8,
+      187.9
+    ],
+    "C.3": [
+      189.6,
+      112.2,
+      94.8,
+      457.8,
+      1144.8,
+      1829.6,
+      2502.8,
+      2701.5,
+      2801.1,
+      2850.3,
+      1728.8,
+      709.2,
+      324,
+      207
+    ],
+    "C.7A": [
+      180.7,
+      106.9,
+      90.1,
+      437.6,
+      1093.1,
+      1747.6,
+      2389.7,
+      2580.1,
+      2675.2,
+      2722,
+      1651.4,
+      677.3,
+      308.9,
+      197.5
+    ],
+    "S.9": [
+      75.8,
+      44.9,
+      37.9,
+      183.4,
+      458.4,
+      732.7,
+      1002,
+      1081.7,
+      1121.5,
+      1141.2,
+      692.4,
+      283.9,
+      129.6,
+      82.8
+    ],
+    "C.35": [
+      73.3,
+      43.3,
+      36.3,
+      177.3,
+      442.5,
+      707.8,
+      968,
+      1045,
+      1083.2,
+      1102.6,
+      668.7,
+      274.5,
+      125.3,
+      79.6
+    ],
+    "C.29B": [
+      227.5,
+      134.6,
+      113.8,
+      550.1,
+      1375.2,
+      2198.2,
+      3006,
+      3245,
+      3364.6,
+      3423.6,
+      2077.2,
+      851.8,
+      388.8,
+      248.4
+    ],
+    "C.12": [
+      189.6,
+      112.2,
+      94.8,
+      458.4,
+      1146,
+      1831.8,
+      2505,
+      2704.2,
+      2803.8,
+      2853,
+      1731,
+      709.8,
+      324,
+      207
+    ],
+    "E.66A": [
+      22.1,
+      13.4,
+      11.1,
+      53.5,
+      134.2,
+      214,
+      292,
+      315.8,
+      327.3,
+      333.1,
+      202.2,
+      82.5,
+      38.3,
+      24.4
+    ],
+    "E.22A": [
+      47.4,
+      28.3,
+      23.7,
+      114.6,
+      287,
+      458.2,
+      626,
+      676.3,
+      701.2,
+      713.5,
+      433,
+      177.7,
+      81.5,
+      52
+    ],
+    "E.8A": [
+      58.5,
+      34.2,
+      29,
+      140.3,
+      351.4,
+      561.9,
+      768.2,
+      829.1,
+      860,
+      874.9,
+      530.8,
+      217.8,
+      99.4,
+      63.7
+    ],
+    "E.20A": [
+      72.7,
+      43.3,
+      36.3,
+      175.7,
+      439.8,
+      702.5,
+      960.5,
+      1036.9,
+      1075,
+      1093.9,
+      663.8,
+      272.4,
+      124.7,
+      79.6
+    ],
+    "E.1": [
+      75.8,
+      44.9,
+      37.9,
+      183.4,
+      458.4,
+      732.7,
+      1002,
+      1081.7,
+      1121.5,
+      1141.2,
+      692.4,
+      283.9,
+      129.6,
+      82.8
+    ],
+    "M.4": [
+      26.9,
+      15.5,
+      13.2,
+      63.9,
+      160.4,
+      256.6,
+      350.7,
+      378.4,
+      392.7,
+      399.4,
+      242.3,
+      99.5,
+      45.4,
+      29.2
+    ],
+    "M.6A": [
+      53.7,
+      32.1,
+      26.9,
+      129.9,
+      325.2,
+      519.3,
+      709.5,
+      766.5,
+      794.6,
+      808.6,
+      490.7,
+      201.4,
+      92.3,
+      58.9
+    ],
+    "M.5": [
+      88.5,
+      52.4,
+      44.2,
+      213.9,
+      534.8,
+      854.8,
+      1169,
+      1262,
+      1308.4,
+      1331.4,
+      807.8,
+      331.2,
+      151.2,
+      96.6
+    ],
+    "M.7": [
+      154.8,
+      91.9,
+      77.4,
+      374.4,
+      936.4,
+      1496.3,
+      2046,
+      2208.7,
+      2849.7,
+      2330.2,
+      1413.9,
+      580,
+      265.1,
+      169.3
+    ],
+    "KHM": [
+      221.2,
+      130.9,
+      110.6,
+      534.8,
+      1337,
+      2137.1,
+      2922.5,
+      3154.9,
+      3271.1,
+      3328.5,
+      2019.5,
+      828.1,
+      378,
+      241.5
+    ],
+    "K.10A": [
+      75.8,
+      44.9,
+      37.9,
+      183.4,
+      458.4,
+      732.7,
+      1002,
+      1081.7,
+      1121.5,
+      1141.2,
+      692.4,
+      283.9,
+      129.6,
+      82.8
+    ],
+    "K.5": [
+      69.5,
+      41.1,
+      34.8,
+      168.1,
+      420.2,
+      671.7,
+      918.5,
+      991.5,
+      1028.1,
+      1046.1,
+      634.7,
+      260.3,
+      118.8,
+      75.9
+    ],
+    "K.14": [
+      158,
+      93.5,
+      79,
+      382,
+      955,
+      1526.5,
+      2087.5,
+      2253.5,
+      2336.5,
+      2377.5,
+      1442.5,
+      591.5,
+      270,
+      172.5
+    ],
+    "K.11A": [
+      139,
+      82.3,
+      69.5,
+      336.2,
+      840.4,
+      1343.3,
+      1837,
+      1983.1,
+      2056.1,
+      2092.2,
+      1269.4,
+      520.5,
+      237.6,
+      151.8
+    ],
+    "K.13": [
+      132.7,
+      78.5,
+      66.4,
+      320.9,
+      802.2,
+      1282.3,
+      1753.5,
+      1892.9,
+      1962.7,
+      1997.1,
+      1211.7,
+      496.9,
+      226.8,
+      144.9
+    ],
+    "K.12": [
+      126.4,
+      74.8,
+      63.2,
+      305.6,
+      764,
+      1221.2,
+      1670,
+      1802.8,
+      1869.2,
+      1902,
+      1154,
+      473.2,
+      216,
+      138
+    ],
+    "Kgt.3": [
+      30,
+      18.1,
+      15.2,
+      73.7,
+      183.4,
+      292.9,
+      400.8,
+      432.8,
+      448.4,
+      456.5,
+      277,
+      113.4,
+      51.8,
+      32.9
+    ],
+    "Kgt.27": [
+      53.7,
+      32.1,
+      26.9,
+      129.9,
+      325.2,
+      519.3,
+      709.5,
+      766.5,
+      794.6,
+      808.6,
+      490.7,
+      201.4,
+      92.3,
+      58.9
+    ],
+    "Ny.1B": [
+      26.9,
+      15.5,
+      13.2,
+      63.9,
+      160.4,
+      256.6,
+      350.7,
+      378.4,
+      392.7,
+      399.4,
+      242.3,
+      99.5,
+      45.4,
+      29.2
+    ],
+    "Kgt.19": [
+      113.8,
+      67.3,
+      56.9,
+      275,
+      687.6,
+      1099.1,
+      1503,
+      1622.5,
+      1682.3,
+      1711.8,
+      1038.6,
+      425.9,
+      194.4,
+      124.2
+    ]
+  },
+  "2560": {
+    "P.1": [
+      29.2,
+      17.6,
+      14.8,
+      75,
+      186.4,
+      293.2,
+      399.7,
+      432.4,
+      449.4,
+      460.9,
+      283.7,
+      116.8,
+      52,
+      32.1
+    ],
+    "W.1C": [
+      33.4,
+      20.1,
+      16.5,
+      85.2,
+      213.4,
+      336.2,
+      457.8,
+      495.9,
+      514.3,
+      527.6,
+      325.2,
+      133.3,
+      59.3,
+      37
+    ],
+    "W.4A": [
+      36.1,
+      22.5,
+      18.2,
+      93.2,
+      232.6,
+      366.2,
+      498.6,
+      539.8,
+      559.9,
+      574.9,
+      354.4,
+      145.7,
+      65.2,
+      40.4
+    ],
+    "P.2A": [
+      178.9,
+      108.2,
+      89.4,
+      455.5,
+      1138.8,
+      1795,
+      2444,
+      2645.8,
+      2746.6,
+      2818.4,
+      1736.8,
+      713.4,
+      317.2,
+      197.6
+    ],
+    "P.7A": [
+      206.4,
+      124.8,
+      103.2,
+      525.6,
+      1314,
+      2071.2,
+      2820,
+      3052.8,
+      3169.2,
+      3252,
+      2004,
+      823.2,
+      366,
+      228
+    ],
+    "P.78": [
+      44.7,
+      27.4,
+      22.4,
+      113.9,
+      285.2,
+      449.1,
+      610.6,
+      661.8,
+      686.8,
+      705,
+      434.6,
+      178,
+      79.8,
+      49.8
+    ],
+    "P.17": [
+      126.3,
+      76.6,
+      62.9,
+      321.7,
+      803.5,
+      1267.1,
+      1724.7,
+      1867.6,
+      1984.9,
+      1989,
+      1226,
+      503.4,
+      223.8,
+      139.2
+    ],
+    "Y.4": [
+      35.1,
+      21.5,
+      17.2,
+      89.3,
+      223.9,
+      352.5,
+      479.8,
+      519.3,
+      538.7,
+      553.2,
+      341,
+      140.4,
+      62.7,
+      38.7
+    ],
+    "Y.17": [
+      42.3,
+      25.7,
+      21.4,
+      107.6,
+      269.1,
+      424,
+      577.2,
+      625.2,
+      648.5,
+      665.8,
+      410.3,
+      168.5,
+      74.9,
+      46.6
+    ],
+    "N.1": [
+      73.2,
+      44,
+      36.8,
+      187.1,
+      466.7,
+      735.8,
+      1002,
+      1085.2,
+      1126.2,
+      1155.4,
+      712,
+      292.4,
+      130,
+      81.2
+    ],
+    "N.5A": [
+      93.9,
+      56.5,
+      47.2,
+      239,
+      598.1,
+      942.2,
+      1283.3,
+      1388.8,
+      1442.4,
+      1479.8,
+      911.6,
+      374.7,
+      166.6,
+      104
+    ],
+    "N.67": [
+      98.8,
+      60,
+      49.2,
+      251.6,
+      628.3,
+      991,
+      1348.7,
+      1460.5,
+      2253.6,
+      1555.4,
+      958.8,
+      393.6,
+      175,
+      108.8
+    ],
+    "C.2": [
+      257,
+      155.6,
+      128.3,
+      654.6,
+      1635.7,
+      2578.9,
+      3510.7,
+      3801,
+      3825.8,
+      4048.6,
+      2495.2,
+      1024.8,
+      455.6,
+      283.6
+    ],
+    "C.13": [
+      187.5,
+      113,
+      93.6,
+      476.2,
+      1191.4,
+      1878,
+      2556.8,
+      2767.8,
+      3006.7,
+      2948.5,
+      1817,
+      746.5,
+      331.8,
+      206.9
+    ],
+    "C.3": [
+      206.4,
+      124.8,
+      103.2,
+      524.9,
+      1312.6,
+      2068.8,
+      2817.6,
+      3049.6,
+      3166,
+      3248.8,
+      2001.6,
+      822.5,
+      366,
+      228
+    ],
+    "C.7A": [
+      196.8,
+      118.9,
+      98,
+      501.8,
+      1253.4,
+      1976,
+      2690.1,
+      2912.7,
+      3023.8,
+      3102.7,
+      1911.9,
+      785.6,
+      348.9,
+      217.7
+    ],
+    "S.9": [
+      82.6,
+      49.9,
+      41.3,
+      210.2,
+      525.6,
+      828.5,
+      1128,
+      1221.1,
+      1267.7,
+      1300.8,
+      801.6,
+      329.3,
+      146.4,
+      91.2
+    ],
+    "C.35": [
+      79.8,
+      48.2,
+      39.6,
+      203.2,
+      507.4,
+      800.2,
+      1089.7,
+      1179.6,
+      1224.5,
+      1256.7,
+      774.2,
+      318.4,
+      141.5,
+      87.8
+    ],
+    "C.29B": [
+      247.7,
+      149.8,
+      123.8,
+      630.7,
+      1576.8,
+      2485.4,
+      3384,
+      3663.4,
+      3803,
+      3902.4,
+      2404.8,
+      987.8,
+      439.2,
+      273.6
+    ],
+    "C.12": [
+      206.4,
+      124.8,
+      103.2,
+      525.6,
+      1314,
+      2071.2,
+      2820,
+      3052.8,
+      3169.2,
+      3252,
+      2004,
+      823.2,
+      366,
+      228
+    ],
+    "E.66A": [
+      24.1,
+      14.9,
+      12,
+      61.3,
+      153.8,
+      242,
+      328.6,
+      356.5,
+      369.9,
+      379.8,
+      234.2,
+      95.7,
+      43.2,
+      27
+    ],
+    "E.22A": [
+      51.6,
+      31.6,
+      25.8,
+      131.4,
+      329,
+      518.2,
+      704.6,
+      763.6,
+      792.4,
+      813.4,
+      501.4,
+      206.2,
+      92,
+      57.4
+    ],
+    "E.8A": [
+      63.6,
+      38.2,
+      31.7,
+      160.8,
+      403,
+      635.3,
+      864.8,
+      936.1,
+      972,
+      997.3,
+      614.6,
+      252.6,
+      112.2,
+      70.1
+    ],
+    "E.20A": [
+      79.1,
+      48.2,
+      39.6,
+      201.5,
+      504.2,
+      794.3,
+      1081.4,
+      1170.6,
+      1215,
+      1247,
+      768.6,
+      315.9,
+      140.8,
+      87.8
+    ],
+    "E.1": [
+      82.6,
+      49.9,
+      41.3,
+      210.2,
+      525.6,
+      828.5,
+      1128,
+      1221.1,
+      1267.7,
+      1300.8,
+      801.6,
+      329.3,
+      146.4,
+      91.2
+    ],
+    "M.4": [
+      29.2,
+      17.4,
+      14.5,
+      73.2,
+      184,
+      290.1,
+      394.8,
+      427.3,
+      443.8,
+      455.3,
+      280.6,
+      115.4,
+      51.2,
+      32.1
+    ],
+    "M.6A": [
+      58.5,
+      35.7,
+      29.2,
+      148.9,
+      372.8,
+      587.2,
+      798.6,
+      865.3,
+      898.1,
+      921.8,
+      568.2,
+      233.6,
+      104.2,
+      65
+    ],
+    "M.5": [
+      96.3,
+      58.2,
+      48.2,
+      245.3,
+      613.2,
+      966.6,
+      1316,
+      1424.6,
+      1479,
+      1517.6,
+      935.2,
+      384.2,
+      170.8,
+      106.4
+    ],
+    "M.7": [
+      168.6,
+      102.3,
+      84.3,
+      429.2,
+      1073.6,
+      1691.8,
+      2303.4,
+      2493.5,
+      3283.1,
+      2656.2,
+      1637,
+      672.6,
+      299.4,
+      186.6
+    ],
+    "KHM": [
+      240.8,
+      145.6,
+      120.4,
+      613.2,
+      1533,
+      2416.4,
+      3290,
+      3561.6,
+      3697.4,
+      3794,
+      2338,
+      960.4,
+      427,
+      266
+    ],
+    "K.10A": [
+      82.6,
+      49.9,
+      41.3,
+      210.2,
+      525.6,
+      828.5,
+      1128,
+      1221.1,
+      1267.7,
+      1300.8,
+      801.6,
+      329.3,
+      146.4,
+      91.2
+    ],
+    "K.5": [
+      75.7,
+      45.8,
+      37.8,
+      192.7,
+      481.8,
+      759.4,
+      1034,
+      1119.4,
+      1162,
+      1192.4,
+      734.8,
+      301.8,
+      134.2,
+      83.6
+    ],
+    "K.14": [
+      172,
+      104,
+      86,
+      438,
+      1095,
+      1726,
+      2350,
+      2544,
+      2641,
+      2710,
+      1670,
+      686,
+      305,
+      190
+    ],
+    "K.11A": [
+      151.4,
+      91.5,
+      75.7,
+      385.4,
+      963.6,
+      1518.9,
+      2068,
+      2238.7,
+      2324.1,
+      2384.8,
+      1469.6,
+      603.7,
+      268.4,
+      167.2
+    ],
+    "K.13": [
+      144.5,
+      87.4,
+      72.2,
+      367.9,
+      919.8,
+      1449.8,
+      1974,
+      2137,
+      2218.4,
+      2276.4,
+      1402.8,
+      576.2,
+      256.2,
+      159.6
+    ],
+    "K.12": [
+      137.6,
+      83.2,
+      68.8,
+      350.4,
+      876,
+      1380.8,
+      1880,
+      2035.2,
+      2112.8,
+      2168,
+      1336,
+      548.8,
+      244,
+      152
+    ],
+    "Kgt.3": [
+      32.7,
+      20.1,
+      16.5,
+      84.4,
+      210.2,
+      331.3,
+      451.2,
+      488.6,
+      507,
+      520.3,
+      320.6,
+      131.6,
+      58.6,
+      36.3
+    ],
+    "Kgt.27": [
+      58.5,
+      35.7,
+      29.2,
+      148.9,
+      372.8,
+      587.2,
+      798.6,
+      865.3,
+      898.1,
+      921.8,
+      568.2,
+      233.6,
+      104.2,
+      65
+    ],
+    "Ny.1B": [
+      29.2,
+      17.4,
+      14.5,
+      73.2,
+      184,
+      290.1,
+      394.8,
+      427.3,
+      443.8,
+      455.3,
+      280.6,
+      115.4,
+      51.2,
+      32.1
+    ],
+    "Kgt.19": [
+      123.8,
+      74.9,
+      61.9,
+      315.4,
+      788.4,
+      1242.7,
+      1692,
+      1831.7,
+      1901.5,
+      1951.2,
+      1202.4,
+      493.9,
+      219.6,
+      136.8
+    ]
+  },
+  "2561": {
+    "P.1": [
+      26.4,
+      15.6,
+      13.4,
+      63.4,
+      157.5,
+      252.1,
+      345.5,
+      372.6,
+      386.5,
+      392.2,
+      236.8,
+      97.3,
+      44.7,
+      28.6
+    ],
+    "W.1C": [
+      30,
+      17.7,
+      15,
+      71.9,
+      180.3,
+      288.9,
+      395.8,
+      427.2,
+      442.2,
+      449.1,
+      271.4,
+      111.1,
+      51,
+      32.8
+    ],
+    "W.4A": [
+      32.6,
+      19.8,
+      16.5,
+      78.8,
+      196.6,
+      314.7,
+      430.9,
+      465,
+      481.6,
+      489.2,
+      295.8,
+      121.2,
+      56.2,
+      35.9
+    ],
+    "P.2A": [
+      161.2,
+      94.9,
+      80.6,
+      384.8,
+      962,
+      1543.1,
+      2112.5,
+      2278.9,
+      2362.1,
+      2398.5,
+      1449.5,
+      594.1,
+      273,
+      175.5
+    ],
+    "P.7A": [
+      186,
+      109.5,
+      93,
+      444,
+      1110,
+      1780.5,
+      2437.5,
+      2629.5,
+      2725.5,
+      2767.5,
+      1672.5,
+      685.5,
+      315,
+      202.5
+    ],
+    "P.78": [
+      40.3,
+      24,
+      20.2,
+      96.2,
+      241,
+      386.1,
+      527.9,
+      570,
+      590.8,
+      599.9,
+      362.7,
+      148.3,
+      68.8,
+      44.2
+    ],
+    "P.17": [
+      113.7,
+      67.3,
+      56.8,
+      271.7,
+      678.7,
+      1089.3,
+      1490.8,
+      1608.7,
+      1702.6,
+      1692.7,
+      1023.2,
+      419.3,
+      192.7,
+      123.6
+    ],
+    "Y.4": [
+      31.6,
+      18.8,
+      15.5,
+      75.6,
+      189.2,
+      303.1,
+      414.7,
+      447.2,
+      463.2,
+      470.8,
+      284.6,
+      116.9,
+      54.1,
+      34.3
+    ],
+    "Y.17": [
+      38.2,
+      22.5,
+      19.2,
+      90.9,
+      227.3,
+      364.5,
+      499,
+      538.5,
+      557.7,
+      566.7,
+      342.5,
+      140.3,
+      64.6,
+      41.5
+    ],
+    "N.1": [
+      66.1,
+      38.6,
+      33.1,
+      158.1,
+      394.3,
+      632.4,
+      866,
+      934.8,
+      968.4,
+      983.2,
+      594.2,
+      243.4,
+      111.9,
+      72.2
+    ],
+    "N.5A": [
+      84.7,
+      49.6,
+      42.4,
+      201.9,
+      505.3,
+      809.9,
+      1109.2,
+      1196.2,
+      1240.4,
+      1259.4,
+      760.9,
+      312,
+      143.4,
+      92.4
+    ],
+    "N.67": [
+      88.9,
+      52.7,
+      44.4,
+      212.5,
+      530.7,
+      851.9,
+      1165.8,
+      1258.1,
+      1867.2,
+      1323.7,
+      800.2,
+      327.9,
+      150.7,
+      96.6
+    ],
+    "C.2": [
+      231.5,
+      136.6,
+      115.7,
+      552.9,
+      1381.7,
+      2217,
+      3034.6,
+      3274,
+      3301.7,
+      3445.4,
+      2082.4,
+      853.4,
+      392.2,
+      251.9
+    ],
+    "C.13": [
+      169,
+      99.1,
+      84.3,
+      402.3,
+      1006.4,
+      1614.5,
+      2210,
+      2383.9,
+      2573.1,
+      2509.2,
+      1516.4,
+      621.7,
+      285.6,
+      183.8
+    ],
+    "C.3": [
+      186,
+      109.5,
+      93,
+      443.5,
+      1108.9,
+      1778.4,
+      2435.4,
+      2626.9,
+      2722.9,
+      2764.9,
+      1670.4,
+      685,
+      315,
+      202.5
+    ],
+    "C.7A": [
+      177.3,
+      104.3,
+      88.4,
+      423.9,
+      1058.8,
+      1698.6,
+      2325.3,
+      2508.8,
+      2600.5,
+      2640.5,
+      1595.6,
+      654.2,
+      300.3,
+      193.2
+    ],
+    "S.9": [
+      74.4,
+      43.8,
+      37.2,
+      177.6,
+      444,
+      712.2,
+      975,
+      1051.8,
+      1090.2,
+      1107,
+      669,
+      274.2,
+      126,
+      81
+    ],
+    "C.35": [
+      71.9,
+      42.3,
+      35.7,
+      171.8,
+      428.7,
+      688,
+      942,
+      1016.1,
+      1053,
+      1069.6,
+      646.2,
+      265.2,
+      121.8,
+      77.9
+    ],
+    "C.29B": [
+      223.2,
+      131.4,
+      111.6,
+      532.8,
+      1332,
+      2136.6,
+      2925,
+      3155.4,
+      3270.6,
+      3321,
+      2007,
+      822.6,
+      378,
+      243
+    ],
+    "C.12": [
+      186,
+      109.5,
+      93,
+      444,
+      1110,
+      1780.5,
+      2437.5,
+      2629.5,
+      2725.5,
+      2767.5,
+      1672.5,
+      685.5,
+      315,
+      202.5
+    ],
+    "E.66A": [
+      21.7,
+      13.1,
+      10.9,
+      51.8,
+      130,
+      208,
+      284.1,
+      307.1,
+      318.2,
+      323.2,
+      195.4,
+      79.7,
+      37.3,
+      23.9
+    ],
+    "E.22A": [
+      46.5,
+      27.7,
+      23.3,
+      111,
+      278,
+      445.4,
+      609.1,
+      657.7,
+      681.6,
+      692.2,
+      418.4,
+      171.7,
+      79.3,
+      50.9
+    ],
+    "E.8A": [
+      57.4,
+      33.4,
+      28.5,
+      135.9,
+      340.4,
+      546.2,
+      747.5,
+      806.2,
+      836,
+      848.7,
+      512.9,
+      210.4,
+      96.6,
+      62.3
+    ],
+    "E.20A": [
+      71.3,
+      42.3,
+      35.7,
+      170.2,
+      426,
+      682.8,
+      934.7,
+      1008.3,
+      1045,
+      1061.2,
+      641.4,
+      263.1,
+      121.3,
+      77.9
+    ],
+    "E.1": [
+      74.4,
+      43.8,
+      37.2,
+      177.6,
+      444,
+      712.2,
+      975,
+      1051.8,
+      1090.2,
+      1107,
+      669,
+      274.2,
+      126,
+      81
+    ],
+    "M.4": [
+      26.4,
+      15.2,
+      13,
+      61.9,
+      155.4,
+      249.5,
+      341.3,
+      368,
+      381.8,
+      387.5,
+      234.2,
+      96.2,
+      44.1,
+      28.6
+    ],
+    "M.6A": [
+      52.7,
+      31.3,
+      26.4,
+      125.8,
+      315,
+      504.8,
+      690.4,
+      745.3,
+      772.5,
+      784.4,
+      474.2,
+      194.5,
+      89.8,
+      57.7
+    ],
+    "M.5": [
+      86.8,
+      51.1,
+      43.4,
+      207.2,
+      518,
+      830.9,
+      1137.5,
+      1227.1,
+      1271.9,
+      1291.5,
+      780.5,
+      319.9,
+      147,
+      94.5
+    ],
+    "M.7": [
+      151.9,
+      89.7,
+      76,
+      362.6,
+      907,
+      1454.4,
+      1990.9,
+      2147.7,
+      2756.8,
+      2260.4,
+      1366.2,
+      560.1,
+      257.8,
+      165.7
+    ],
+    "KHM": [
+      217,
+      127.8,
+      108.5,
+      518,
+      1295,
+      2077.3,
+      2843.8,
+      3067.8,
+      3179.8,
+      3228.8,
+      1951.3,
+      799.8,
+      367.5,
+      236.3
+    ],
+    "K.10A": [
+      74.4,
+      43.8,
+      37.2,
+      177.6,
+      444,
+      712.2,
+      975,
+      1051.8,
+      1090.2,
+      1107,
+      669,
+      274.2,
+      126,
+      81
+    ],
+    "K.5": [
+      68.2,
+      40.2,
+      34.1,
+      162.8,
+      407,
+      652.9,
+      893.8,
+      964.2,
+      999.4,
+      1014.8,
+      613.3,
+      251.4,
+      115.5,
+      74.3
+    ],
+    "K.14": [
+      155,
+      91.3,
+      77.5,
+      370,
+      925,
+      1483.8,
+      2031.3,
+      2191.3,
+      2271.3,
+      2306.3,
+      1393.8,
+      571.3,
+      262.5,
+      168.8
+    ],
+    "K.11A": [
+      136.4,
+      80.3,
+      68.2,
+      325.6,
+      814,
+      1305.7,
+      1787.5,
+      1928.3,
+      1998.7,
+      2029.5,
+      1226.5,
+      502.7,
+      231,
+      148.5
+    ],
+    "K.13": [
+      130.2,
+      76.7,
+      65.1,
+      310.8,
+      777,
+      1246.4,
+      1706.3,
+      1840.7,
+      1907.9,
+      1937.3,
+      1170.8,
+      479.9,
+      220.5,
+      141.8
+    ],
+    "K.12": [
+      124,
+      73,
+      62,
+      296,
+      740,
+      1187,
+      1625,
+      1753,
+      1817,
+      1845,
+      1115,
+      457,
+      210,
+      135
+    ],
+    "Kgt.3": [
+      29.5,
+      17.7,
+      15,
+      71.4,
+      177.6,
+      284.7,
+      390,
+      420.9,
+      435.9,
+      442.8,
+      267.6,
+      109.5,
+      50.4,
+      32.2
+    ],
+    "Kgt.27": [
+      52.7,
+      31.3,
+      26.4,
+      125.8,
+      315,
+      504.8,
+      690.4,
+      745.3,
+      772.5,
+      784.4,
+      474.2,
+      194.5,
+      89.8,
+      57.7
+    ],
+    "Ny.1B": [
+      26.4,
+      15.2,
+      13,
+      61.9,
+      155.4,
+      249.5,
+      341.3,
+      368,
+      381.8,
+      387.5,
+      234.2,
+      96.2,
+      44.1,
+      28.6
+    ],
+    "Kgt.19": [
+      111.6,
+      65.7,
+      55.8,
+      266.4,
+      666,
+      1068.3,
+      1462.5,
+      1577.7,
+      1635.3,
+      1660.5,
+      1003.5,
+      411.3,
+      189,
+      121.5
+    ]
+  },
+  "2562": {
+    "P.1": [
+      24.1,
+      14,
+      12.4,
+      54.6,
+      135.4,
+      220.6,
+      304,
+      326.8,
+      338.4,
+      339.7,
+      200.9,
+      82.3,
+      39.1,
+      25.8
+    ],
+    "W.1C": [
+      27.4,
+      15.9,
+      13.8,
+      61.8,
+      154.9,
+      252.8,
+      348.3,
+      374.7,
+      387.1,
+      389,
+      230.1,
+      94,
+      44.6,
+      29.5
+    ],
+    "W.4A": [
+      29.8,
+      17.7,
+      15.2,
+      67.7,
+      169,
+      275.3,
+      379.2,
+      407.8,
+      421.6,
+      423.7,
+      250.9,
+      102.5,
+      49.3,
+      32.3
+    ],
+    "P.2A": [
+      147.7,
+      84.8,
+      73.8,
+      330.7,
+      826.8,
+      1350.4,
+      1859,
+      1998.4,
+      2068,
+      2077.4,
+      1229.8,
+      502.8,
+      239.2,
+      158.6
+    ],
+    "P.7A": [
+      170.4,
+      97.8,
+      85.2,
+      381.6,
+      954,
+      1558.2,
+      2145,
+      2305.8,
+      2386.2,
+      2397,
+      1419,
+      580.2,
+      276,
+      183
+    ],
+    "P.78": [
+      36.9,
+      21.4,
+      18.5,
+      82.7,
+      207.2,
+      337.8,
+      464.5,
+      499.8,
+      517.3,
+      519.6,
+      307.7,
+      125.5,
+      60.3,
+      39.9
+    ],
+    "P.17": [
+      104.1,
+      60.1,
+      52.1,
+      233.5,
+      583.3,
+      953.3,
+      1311.9,
+      1410.7,
+      1486.6,
+      1466.1,
+      868.1,
+      354.9,
+      168.9,
+      111.6
+    ],
+    "Y.4": [
+      28.8,
+      16.7,
+      14.2,
+      65,
+      162.7,
+      265.2,
+      364.9,
+      392.1,
+      405.5,
+      407.7,
+      241.4,
+      99,
+      47.4,
+      30.9
+    ],
+    "Y.17": [
+      35.1,
+      20,
+      17.5,
+      78.2,
+      195.3,
+      319,
+      439.2,
+      472.2,
+      488.3,
+      490.9,
+      290.6,
+      118.7,
+      56.6,
+      37.6
+    ],
+    "N.1": [
+      60.6,
+      34.4,
+      30.2,
+      135.8,
+      338.9,
+      553.4,
+      762,
+      819.7,
+      847.8,
+      851.5,
+      504.1,
+      206,
+      97.9,
+      65.3
+    ],
+    "N.5A": [
+      77.7,
+      44.2,
+      38.8,
+      173.6,
+      434.3,
+      708.8,
+      976.1,
+      1048.9,
+      1086,
+      1090.7,
+      645.5,
+      264,
+      125.5,
+      83.6
+    ],
+    "N.67": [
+      81.4,
+      47.1,
+      40.8,
+      182.6,
+      456.1,
+      745.6,
+      1025.9,
+      1103.2,
+      1571.7,
+      1146.5,
+      678.9,
+      277.5,
+      132.1,
+      87.2
+    ],
+    "C.2": [
+      212,
+      122,
+      106.1,
+      475.2,
+      1187.5,
+      1940.2,
+      2670.4,
+      2871,
+      2900.9,
+      2984.2,
+      1766.8,
+      722.4,
+      343.7,
+      227.5
+    ],
+    "C.13": [
+      154.8,
+      88.4,
+      77.1,
+      345.7,
+      865,
+      1413,
+      1944.8,
+      2090.4,
+      2241.4,
+      2173.3,
+      1286.6,
+      526.3,
+      250.2,
+      166.1
+    ],
+    "C.3": [
+      170.4,
+      97.8,
+      85.2,
+      381.2,
+      953.2,
+      1556.4,
+      2143.2,
+      2303.5,
+      2383.9,
+      2394.7,
+      1417.2,
+      579.8,
+      276,
+      183
+    ],
+    "C.7A": [
+      162.3,
+      93.1,
+      80.9,
+      364.4,
+      909.9,
+      1486.4,
+      2046.3,
+      2199.9,
+      2276.8,
+      2287,
+      1353.6,
+      553.7,
+      263.1,
+      174.5
+    ],
+    "S.9": [
+      68.2,
+      39.1,
+      34.1,
+      152.6,
+      381.6,
+      623.3,
+      858,
+      922.3,
+      954.5,
+      958.8,
+      567.6,
+      232.1,
+      110.4,
+      73.2
+    ],
+    "C.35": [
+      65.7,
+      37.7,
+      32.7,
+      147.7,
+      368.5,
+      602.2,
+      829,
+      891,
+      921.8,
+      926.4,
+      548.3,
+      224.5,
+      106.7,
+      70.4
+    ],
+    "C.29B": [
+      204.5,
+      117.4,
+      102.2,
+      457.9,
+      1144.8,
+      1869.8,
+      2574,
+      2767,
+      2863.4,
+      2876.4,
+      1702.8,
+      696.2,
+      331.2,
+      219.6
+    ],
+    "C.12": [
+      170.4,
+      97.8,
+      85.2,
+      381.6,
+      954,
+      1558.2,
+      2145,
+      2305.8,
+      2386.2,
+      2397,
+      1419,
+      580.2,
+      276,
+      183
+    ],
+    "E.66A": [
+      19.9,
+      11.6,
+      9.9,
+      44.5,
+      111.8,
+      182,
+      250,
+      269.2,
+      278.7,
+      279.9,
+      165.8,
+      67.5,
+      32.7,
+      21.6
+    ],
+    "E.22A": [
+      42.6,
+      24.7,
+      21.3,
+      95.4,
+      239,
+      389.8,
+      536,
+      576.7,
+      596.8,
+      599.5,
+      355,
+      145.3,
+      69.5,
+      46
+    ],
+    "E.8A": [
+      52.5,
+      29.8,
+      26,
+      116.7,
+      292.6,
+      478.1,
+      657.8,
+      706.9,
+      732,
+      735.1,
+      435.2,
+      178.2,
+      84.6,
+      56.3
+    ],
+    "E.20A": [
+      65.3,
+      37.7,
+      32.7,
+      146.3,
+      366.2,
+      597.5,
+      822.5,
+      884.1,
+      915,
+      919.1,
+      544.2,
+      222.6,
+      106.3,
+      70.4
+    ],
+    "E.1": [
+      68.2,
+      39.1,
+      34.1,
+      152.6,
+      381.6,
+      623.3,
+      858,
+      922.3,
+      954.5,
+      958.8,
+      567.6,
+      232.1,
+      110.4,
+      73.2
+    ],
+    "M.4": [
+      24.1,
+      13.5,
+      11.8,
+      53.1,
+      133.6,
+      218.4,
+      300.3,
+      322.6,
+      334.3,
+      335.6,
+      198.7,
+      81.5,
+      38.6,
+      25.8
+    ],
+    "M.6A": [
+      48.3,
+      27.9,
+      24.1,
+      108.1,
+      270.8,
+      441.7,
+      607.5,
+      653.5,
+      676.4,
+      679.4,
+      402.3,
+      164.6,
+      78.7,
+      52.1
+    ],
+    "M.5": [
+      79.5,
+      45.6,
+      39.8,
+      178.1,
+      445.2,
+      727.2,
+      1001,
+      1076,
+      1113.6,
+      1118.6,
+      662.2,
+      270.8,
+      128.8,
+      85.4
+    ],
+    "M.7": [
+      139.2,
+      80.1,
+      69.6,
+      311.6,
+      779.6,
+      1272.7,
+      1752,
+      1883.3,
+      2354.3,
+      1957.8,
+      1159.1,
+      474,
+      225.9,
+      149.7
+    ],
+    "KHM": [
+      198.8,
+      114.1,
+      99.4,
+      445.2,
+      1113,
+      1817.9,
+      2502.5,
+      2690.1,
+      2783.9,
+      2796.5,
+      1655.5,
+      676.9,
+      322,
+      213.5
+    ],
+    "K.10A": [
+      68.2,
+      39.1,
+      34.1,
+      152.6,
+      381.6,
+      623.3,
+      858,
+      922.3,
+      954.5,
+      958.8,
+      567.6,
+      232.1,
+      110.4,
+      73.2
+    ],
+    "K.5": [
+      62.5,
+      35.9,
+      31.2,
+      139.9,
+      349.8,
+      571.3,
+      786.5,
+      845.5,
+      874.9,
+      878.9,
+      520.3,
+      212.7,
+      101.2,
+      67.1
+    ],
+    "K.14": [
+      142,
+      81.5,
+      71,
+      318,
+      795,
+      1298.5,
+      1787.5,
+      1921.5,
+      1988.5,
+      1997.5,
+      1182.5,
+      483.5,
+      230,
+      152.5
+    ],
+    "K.11A": [
+      125,
+      71.7,
+      62.5,
+      279.8,
+      699.6,
+      1142.7,
+      1573,
+      1690.9,
+      1749.9,
+      1757.8,
+      1040.6,
+      425.5,
+      202.4,
+      134.2
+    ],
+    "K.13": [
+      119.3,
+      68.5,
+      59.6,
+      267.1,
+      667.8,
+      1090.7,
+      1501.5,
+      1614.1,
+      1670.3,
+      1677.9,
+      993.3,
+      406.1,
+      193.2,
+      128.1
+    ],
+    "K.12": [
+      113.6,
+      65.2,
+      56.8,
+      254.4,
+      636,
+      1038.8,
+      1430,
+      1537.2,
+      1590.8,
+      1598,
+      946,
+      386.8,
+      184,
+      122
+    ],
+    "Kgt.3": [
+      27,
+      15.9,
+      13.8,
+      61.3,
+      152.6,
+      249.1,
+      343.2,
+      369.2,
+      381.6,
+      383.5,
+      227,
+      92.6,
+      44.2,
+      29.1
+    ],
+    "Kgt.27": [
+      48.3,
+      27.9,
+      24.1,
+      108.1,
+      270.8,
+      441.7,
+      607.5,
+      653.5,
+      676.4,
+      679.4,
+      402.3,
+      164.6,
+      78.7,
+      52.1
+    ],
+    "Ny.1B": [
+      24.1,
+      13.5,
+      11.8,
+      53.1,
+      133.6,
+      218.4,
+      300.3,
+      322.6,
+      334.3,
+      335.6,
+      198.7,
+      81.5,
+      38.6,
+      25.8
+    ],
+    "Kgt.19": [
+      102.2,
+      58.7,
+      51.1,
+      229,
+      572.4,
+      934.9,
+      1287,
+      1383.5,
+      1431.7,
+      1438.2,
+      851.4,
+      348.1,
+      165.6,
+      109.8
+    ]
+  },
+  "2563": {
+    "P.1": [
+      27.2,
+      16.2,
+      13.8,
+      66.8,
+      166,
+      264.2,
+      361.4,
+      390.2,
+      405,
+      412.4,
+      250.6,
+      103,
+      46.8,
+      29.6
+    ],
+    "W.1C": [
+      31,
+      18.4,
+      15.4,
+      75.8,
+      190,
+      302.8,
+      414,
+      447.4,
+      463.4,
+      472.2,
+      287.2,
+      117.6,
+      53.4,
+      34
+    ],
+    "W.4A": [
+      33.6,
+      20.6,
+      17,
+      83,
+      207.2,
+      329.8,
+      450.8,
+      487,
+      504.6,
+      514.4,
+      313,
+      128.4,
+      58.8,
+      37.2
+    ],
+    "P.2A": [
+      166.4,
+      98.8,
+      83.2,
+      405.6,
+      1014,
+      1617.2,
+      2210,
+      2386.8,
+      2475.2,
+      2522,
+      1534,
+      629.2,
+      286,
+      182
+    ],
+    "P.7A": [
+      192,
+      114,
+      96,
+      468,
+      1170,
+      1866,
+      2550,
+      2754,
+      2856,
+      2910,
+      1770,
+      726,
+      330,
+      210
+    ],
+    "P.78": [
+      41.6,
+      25,
+      20.8,
+      101.4,
+      254,
+      404.6,
+      552.2,
+      597,
+      619,
+      630.8,
+      383.8,
+      157,
+      72,
+      45.8
+    ],
+    "P.17": [
+      117.4,
+      70,
+      58.6,
+      286.4,
+      715.4,
+      1141.6,
+      1559.6,
+      1684.8,
+      1785.6,
+      1779.8,
+      1082.8,
+      444,
+      201.8,
+      128.2
+    ],
+    "Y.4": [
+      32.6,
+      19.6,
+      16,
+      79.6,
+      199.4,
+      317.6,
+      433.8,
+      468.4,
+      485.4,
+      495,
+      301.2,
+      123.8,
+      56.6,
+      35.6
+    ],
+    "Y.17": [
+      39.4,
+      23.4,
+      19.8,
+      95.8,
+      239.6,
+      382,
+      522,
+      564,
+      584.4,
+      595.8,
+      362.4,
+      148.6,
+      67.6,
+      43
+    ],
+    "N.1": [
+      68.2,
+      40.2,
+      34.2,
+      166.6,
+      415.6,
+      662.8,
+      906,
+      979,
+      1014.8,
+      1033.8,
+      628.8,
+      257.8,
+      117.2,
+      74.8
+    ],
+    "N.5A": [
+      87.4,
+      51.6,
+      43.8,
+      212.8,
+      532.6,
+      848.8,
+      1160.4,
+      1252.8,
+      1299.8,
+      1324.2,
+      805.2,
+      330.4,
+      150.2,
+      95.8
+    ],
+    "N.67": [
+      91.8,
+      54.8,
+      45.8,
+      224,
+      559.4,
+      892.8,
+      1219.6,
+      1317.6,
+      1980.8,
+      1391.8,
+      846.8,
+      347.2,
+      157.8,
+      100.2
+    ],
+    "C.2": [
+      239,
+      142.2,
+      119.4,
+      582.8,
+      1456.4,
+      2323.4,
+      3174.6,
+      3429,
+      3455.8,
+      3622.8,
+      2203.8,
+      903.8,
+      410.8,
+      261.2
+    ],
+    "C.13": [
+      174.4,
+      103.2,
+      87,
+      424,
+      1060.8,
+      1692,
+      2312,
+      2496.8,
+      2700.6,
+      2638.4,
+      1604.8,
+      658.4,
+      299.2,
+      190.6
+    ],
+    "C.3": [
+      192,
+      114,
+      96,
+      467.4,
+      1168.8,
+      1863.8,
+      2547.8,
+      2751.2,
+      2853.2,
+      2907.2,
+      1767.8,
+      725.4,
+      330,
+      210
+    ],
+    "C.7A": [
+      183,
+      108.6,
+      91.2,
+      446.8,
+      1116,
+      1780.2,
+      2432.6,
+      2627.6,
+      2725,
+      2776.4,
+      1688.6,
+      692.8,
+      314.6,
+      200.4
+    ],
+    "S.9": [
+      76.8,
+      45.6,
+      38.4,
+      187.2,
+      468,
+      746.4,
+      1020,
+      1101.6,
+      1142.4,
+      1164,
+      708,
+      290.4,
+      132,
+      84
+    ],
+    "C.35": [
+      74.2,
+      44,
+      36.8,
+      181,
+      451.8,
+      721,
+      985.4,
+      1064.2,
+      1103.4,
+      1124.6,
+      683.8,
+      280.8,
+      127.6,
+      80.8
+    ],
+    "C.29B": [
+      230.4,
+      136.8,
+      115.2,
+      561.6,
+      1404,
+      2239.2,
+      3060,
+      3304.8,
+      3427.2,
+      3492,
+      2124,
+      871.2,
+      396,
+      252
+    ],
+    "C.12": [
+      192,
+      114,
+      96,
+      468,
+      1170,
+      1866,
+      2550,
+      2754,
+      2856,
+      2910,
+      1770,
+      726,
+      330,
+      210
+    ],
+    "E.66A": [
+      22.4,
+      13.6,
+      11.2,
+      54.6,
+      137,
+      218,
+      297.2,
+      321.6,
+      333.4,
+      339.8,
+      206.8,
+      84.4,
+      39,
+      24.8
+    ],
+    "E.22A": [
+      48,
+      28.8,
+      24,
+      117,
+      293,
+      466.8,
+      637.2,
+      688.8,
+      714.2,
+      727.8,
+      442.8,
+      181.8,
+      83,
+      52.8
+    ],
+    "E.8A": [
+      59.2,
+      34.8,
+      29.4,
+      143.2,
+      358.8,
+      572.4,
+      782,
+      844.4,
+      876,
+      892.4,
+      542.8,
+      222.8,
+      101.2,
+      64.6
+    ],
+    "E.20A": [
+      73.6,
+      44,
+      36.8,
+      179.4,
+      449,
+      715.6,
+      977.8,
+      1056,
+      1095,
+      1115.8,
+      678.8,
+      278.6,
+      127,
+      80.8
+    ],
+    "E.1": [
+      76.8,
+      45.6,
+      38.4,
+      187.2,
+      468,
+      746.4,
+      1020,
+      1101.6,
+      1142.4,
+      1164,
+      708,
+      290.4,
+      132,
+      84
+    ],
+    "M.4": [
+      27.2,
+      15.8,
+      13.4,
+      65.2,
+      163.8,
+      261.4,
+      357,
+      385.4,
+      400,
+      407.4,
+      247.8,
+      101.8,
+      46.2,
+      29.6
+    ],
+    "M.6A": [
+      54.4,
+      32.6,
+      27.2,
+      132.6,
+      332,
+      529,
+      722.2,
+      780.6,
+      809.4,
+      824.8,
+      501.8,
+      206,
+      94,
+      59.8
+    ],
+    "M.5": [
+      89.6,
+      53.2,
+      44.8,
+      218.4,
+      546,
+      870.8,
+      1190,
+      1285.2,
+      1332.8,
+      1358,
+      826,
+      338.8,
+      154,
+      98
+    ],
+    "M.7": [
+      156.8,
+      93.4,
+      78.4,
+      382.2,
+      956,
+      1524.2,
+      2082.8,
+      2249.4,
+      2911.6,
+      2376.8,
+      1445.8,
+      593.2,
+      270,
+      171.8
+    ],
+    "KHM": [
+      224,
+      133,
+      112,
+      546,
+      1365,
+      2177,
+      2975,
+      3213,
+      3332,
+      3395,
+      2065,
+      847,
+      385,
+      245
+    ],
+    "K.10A": [
+      76.8,
+      45.6,
+      38.4,
+      187.2,
+      468,
+      746.4,
+      1020,
+      1101.6,
+      1142.4,
+      1164,
+      708,
+      290.4,
+      132,
+      84
+    ],
+    "K.5": [
+      70.4,
+      41.8,
+      35.2,
+      171.6,
+      429,
+      684.2,
+      935,
+      1009.8,
+      1047.2,
+      1067,
+      649,
+      266.2,
+      121,
+      77
+    ],
+    "K.14": [
+      160,
+      95,
+      80,
+      390,
+      975,
+      1555,
+      2125,
+      2295,
+      2380,
+      2425,
+      1475,
+      605,
+      275,
+      175
+    ],
+    "K.11A": [
+      140.8,
+      83.6,
+      70.4,
+      343.2,
+      858,
+      1368.4,
+      1870,
+      2019.6,
+      2094.4,
+      2134,
+      1298,
+      532.4,
+      242,
+      154
+    ],
+    "K.13": [
+      134.4,
+      79.8,
+      67.2,
+      327.6,
+      819,
+      1306.2,
+      1785,
+      1927.8,
+      1999.2,
+      2037,
+      1239,
+      508.2,
+      231,
+      147
+    ],
+    "K.12": [
+      128,
+      76,
+      64,
+      312,
+      780,
+      1244,
+      1700,
+      1836,
+      1904,
+      1940,
+      1180,
+      484,
+      220,
+      140
+    ],
+    "Kgt.3": [
+      30.4,
+      18.4,
+      15.4,
+      75.2,
+      187.2,
+      298.4,
+      408,
+      440.8,
+      456.8,
+      465.6,
+      283.2,
+      116,
+      52.8,
+      33.4
+    ],
+    "Kgt.27": [
+      54.4,
+      32.6,
+      27.2,
+      132.6,
+      332,
+      529,
+      722.2,
+      780.6,
+      809.4,
+      824.8,
+      501.8,
+      206,
+      94,
+      59.8
+    ],
+    "Ny.1B": [
+      27.2,
+      15.8,
+      13.4,
+      65.2,
+      163.8,
+      261.4,
+      357,
+      385.4,
+      400,
+      407.4,
+      247.8,
+      101.8,
+      46.2,
+      29.6
+    ],
+    "Kgt.19": [
+      115.2,
+      68.4,
+      57.6,
+      280.8,
+      702,
+      1119.6,
+      1530,
+      1652.4,
+      1713.6,
+      1746,
+      1062,
+      435.6,
+      198,
+      126
+    ]
+  },
+  "2564": {
+    "P.1": [
+      26,
+      17,
+      13,
+      64,
+      162,
+      255,
+      361,
+      391,
+      404,
+      383,
+      191,
+      85,
+      43,
+      30
+    ],
+    "W.1C": [
+      29,
+      19,
+      15,
+      73,
+      185,
+      292,
+      414,
+      448,
+      463,
+      438,
+      219,
+      97,
+      49,
+      34
+    ],
+    "W.4A": [
+      32,
+      21,
+      16,
+      80,
+      201,
+      318,
+      451,
+      488,
+      504,
+      477,
+      239,
+      106,
+      53,
+      37
+    ],
+    "P.2A": [
+      156,
+      104,
+      78,
+      390,
+      988,
+      1560,
+      2210,
+      2392,
+      2470,
+      2340,
+      1170,
+      520,
+      260,
+      182
+    ],
+    "P.7A": [
+      180,
+      120,
+      90,
+      450,
+      1140,
+      1800,
+      2550,
+      2760,
+      2850,
+      2700,
+      1350,
+      600,
+      300,
+      210
+    ],
+    "P.78": [
+      39,
+      26,
+      20,
+      98,
+      247,
+      390,
+      553,
+      598,
+      618,
+      585,
+      293,
+      130,
+      65,
+      46
+    ],
+    "P.17": [
+      110,
+      73,
+      55,
+      275,
+      697,
+      1101,
+      1560,
+      1688,
+      1743,
+      1652,
+      826,
+      367,
+      184,
+      128
+    ],
+    "Y.4": [
+      31,
+      20,
+      15,
+      77,
+      194,
+      306,
+      434,
+      469,
+      485,
+      459,
+      230,
+      102,
+      51,
+      36
+    ],
+    "Y.17": [
+      37,
+      25,
+      18,
+      92,
+      233,
+      368,
+      522,
+      565,
+      583,
+      553,
+      276,
+      123,
+      61,
+      43
+    ],
+    "N.1": [
+      64,
+      43,
+      32,
+      160,
+      405,
+      640,
+      906,
+      981,
+      1013,
+      959,
+      480,
+      213,
+      107,
+      75
+    ],
+    "N.5A": [
+      82,
+      55,
+      41,
+      205,
+      519,
+      819,
+      1160,
+      1256,
+      1297,
+      1229,
+      614,
+      273,
+      137,
+      96
+    ],
+    "N.67": [
+      86,
+      57,
+      43,
+      215,
+      545,
+      861,
+      1220,
+      1320,
+      1363,
+      1292,
+      646,
+      287,
+      144,
+      100
+    ],
+    "C.2": [
+      224,
+      149,
+      112,
+      560,
+      1419,
+      2241,
+      3175,
+      3436,
+      3548,
+      3362,
+      1681,
+      747,
+      374,
+      261
+    ],
+    "C.13": [
+      163,
+      109,
+      82,
+      408,
+      1034,
+      1632,
+      2312,
+      2502,
+      2584,
+      2448,
+      1224,
+      544,
+      272,
+      190
+    ],
+    "C.3": [
+      180,
+      120,
+      90,
+      450,
+      1139,
+      1798,
+      2547,
+      2757,
+      2847,
+      2697,
+      1349,
+      599,
+      300,
+      210
+    ],
+    "C.7A": [
+      172,
+      114,
+      86,
+      429,
+      1088,
+      1717,
+      2433,
+      2633,
+      2719,
+      2576,
+      1288,
+      572,
+      286,
+      200
+    ],
+    "S.9": [
+      72,
+      48,
+      36,
+      180,
+      456,
+      720,
+      1020,
+      1104,
+      1140,
+      1080,
+      540,
+      240,
+      120,
+      84
+    ],
+    "C.35": [
+      70,
+      46,
+      35,
+      174,
+      440,
+      695,
+      985,
+      1066,
+      1101,
+      1043,
+      522,
+      232,
+      116,
+      81
+    ],
+    "C.29B": [
+      216,
+      144,
+      108,
+      540,
+      1368,
+      2160,
+      3060,
+      3312,
+      3420,
+      3240,
+      1620,
+      720,
+      360,
+      252
+    ],
+    "C.12": [
+      180,
+      120,
+      90,
+      450,
+      1140,
+      1800,
+      2550,
+      2760,
+      2850,
+      2700,
+      1350,
+      600,
+      300,
+      210
+    ],
+    "E.66A": [
+      21,
+      14,
+      11,
+      53,
+      133,
+      210,
+      298,
+      322,
+      333,
+      315,
+      158,
+      70,
+      35,
+      25
+    ],
+    "E.22A": [
+      45,
+      30,
+      23,
+      113,
+      285,
+      450,
+      638,
+      690,
+      713,
+      675,
+      338,
+      150,
+      75,
+      53
+    ],
+    "E.8A": [
+      55,
+      37,
+      28,
+      138,
+      350,
+      552,
+      782,
+      846,
+      874,
+      828,
+      414,
+      184,
+      92,
+      64
+    ],
+    "E.20A": [
+      69,
+      46,
+      35,
+      173,
+      437,
+      690,
+      978,
+      1058,
+      1093,
+      1035,
+      518,
+      230,
+      115,
+      81
+    ],
+    "E.1": [
+      72,
+      48,
+      36,
+      180,
+      456,
+      720,
+      1020,
+      1104,
+      1140,
+      1080,
+      540,
+      240,
+      120,
+      84
+    ],
+    "M.4": [
+      25,
+      17,
+      13,
+      63,
+      160,
+      252,
+      357,
+      386,
+      399,
+      378,
+      189,
+      84,
+      42,
+      29
+    ],
+    "M.6A": [
+      51,
+      34,
+      26,
+      128,
+      323,
+      510,
+      723,
+      782,
+      808,
+      765,
+      383,
+      170,
+      85,
+      60
+    ],
+    "M.5": [
+      84,
+      56,
+      42,
+      210,
+      532,
+      840,
+      1190,
+      1288,
+      1330,
+      1260,
+      630,
+      280,
+      140,
+      98
+    ],
+    "M.7": [
+      147,
+      98,
+      74,
+      368,
+      931,
+      1470,
+      2083,
+      2254,
+      2328,
+      2205,
+      1103,
+      490,
+      245,
+      172
+    ],
+    "KHM": [
+      210,
+      140,
+      105,
+      525,
+      1330,
+      2100,
+      2975,
+      3220,
+      3325,
+      3150,
+      1575,
+      700,
+      350,
+      245
+    ],
+    "K.10A": [
+      72,
+      48,
+      36,
+      180,
+      456,
+      720,
+      1020,
+      1104,
+      1140,
+      1080,
+      540,
+      240,
+      120,
+      84
+    ],
+    "K.5": [
+      66,
+      44,
+      33,
+      165,
+      418,
+      660,
+      935,
+      1012,
+      1045,
+      990,
+      495,
+      220,
+      110,
+      77
+    ],
+    "K.14": [
+      150,
+      100,
+      75,
+      375,
+      950,
+      1500,
+      2125,
+      2300,
+      2375,
+      2250,
+      1125,
+      500,
+      250,
+      175
+    ],
+    "K.11A": [
+      132,
+      88,
+      66,
+      330,
+      836,
+      1320,
+      1870,
+      2024,
+      2090,
+      1980,
+      990,
+      440,
+      220,
+      154
+    ],
+    "K.13": [
+      126,
+      84,
+      63,
+      315,
+      798,
+      1260,
+      1785,
+      1932,
+      1995,
+      1890,
+      945,
+      420,
+      210,
+      147
+    ],
+    "K.12": [
+      120,
+      80,
+      60,
+      300,
+      760,
+      1200,
+      1700,
+      1840,
+      1900,
+      1800,
+      900,
+      400,
+      200,
+      140
+    ],
+    "Kgt.3": [
+      29,
+      19,
+      14,
+      72,
+      182,
+      288,
+      408,
+      442,
+      456,
+      432,
+      216,
+      96,
+      48,
+      34
+    ],
+    "Kgt.27": [
+      51,
+      34,
+      26,
+      128,
+      323,
+      510,
+      723,
+      782,
+      808,
+      765,
+      383,
+      170,
+      85,
+      60
+    ],
+    "Ny.1B": [
+      25,
+      17,
+      13,
+      63,
+      160,
+      252,
+      357,
+      386,
+      399,
+      378,
+      189,
+      84,
+      42,
+      29
+    ],
+    "Kgt.19": [
+      108,
+      72,
+      54,
+      270,
+      684,
+      1080,
+      1530,
+      1656,
+      1710,
+      1620,
+      810,
+      360,
+      180,
+      126
+    ]
+  },
+  "2565": {
+    "P.1": [
+      30,
+      17,
+      13,
+      77,
+      191,
+      298,
+      384,
+      424,
+      436,
+      464,
+      298,
+      119,
+      51,
+      34
+    ],
+    "W.1C": [
+      34,
+      19,
+      15,
+      88,
+      219,
+      341,
+      440,
+      486,
+      500,
+      532,
+      341,
+      136,
+      58,
+      39
+    ],
+    "W.4A": [
+      37,
+      21,
+      16,
+      95,
+      239,
+      371,
+      478,
+      529,
+      544,
+      579,
+      371,
+      148,
+      64,
+      42
+    ],
+    "P.2A": [
+      182,
+      104,
+      78,
+      468,
+      1170,
+      1820,
+      2347,
+      2594,
+      2668,
+      2840,
+      1820,
+      728,
+      312,
+      208
+    ],
+    "P.7A": [
+      210,
+      120,
+      90,
+      540,
+      1350,
+      2100,
+      2708,
+      2993,
+      3078,
+      3277,
+      2100,
+      840,
+      360,
+      240
+    ],
+    "P.78": [
+      46,
+      26,
+      20,
+      117,
+      293,
+      455,
+      587,
+      648,
+      667,
+      710,
+      455,
+      182,
+      78,
+      52
+    ],
+    "P.17": [
+      128,
+      73,
+      55,
+      330,
+      826,
+      1285,
+      1656,
+      1830,
+      1883,
+      2005,
+      1285,
+      514,
+      220,
+      147
+    ],
+    "Y.4": [
+      36,
+      20,
+      15,
+      92,
+      230,
+      357,
+      460,
+      509,
+      523,
+      557,
+      357,
+      143,
+      61,
+      41
+    ],
+    "Y.17": [
+      43,
+      25,
+      18,
+      111,
+      276,
+      430,
+      554,
+      612,
+      630,
+      671,
+      430,
+      172,
+      74,
+      49
+    ],
+    "N.1": [
+      75,
+      43,
+      32,
+      192,
+      480,
+      746,
+      962,
+      1063,
+      1094,
+      1165,
+      746,
+      298,
+      128,
+      85
+    ],
+    "N.5A": [
+      96,
+      55,
+      41,
+      246,
+      614,
+      955,
+      1232,
+      1362,
+      1400,
+      1491,
+      955,
+      382,
+      164,
+      109
+    ],
+    "N.67": [
+      100,
+      57,
+      43,
+      258,
+      646,
+      1004,
+      1295,
+      1431,
+      1472,
+      1568,
+      1004,
+      402,
+      172,
+      115
+    ],
+    "C.2": [
+      261,
+      149,
+      112,
+      672,
+      1681,
+      2615,
+      3371,
+      3726,
+      3832,
+      4080,
+      2615,
+      1046,
+      448,
+      299
+    ],
+    "C.13": [
+      190,
+      109,
+      82,
+      490,
+      1224,
+      1904,
+      2455,
+      2713,
+      2791,
+      2972,
+      1904,
+      762,
+      326,
+      218
+    ],
+    "C.3": [
+      210,
+      120,
+      90,
+      539,
+      1349,
+      2098,
+      2705,
+      2990,
+      3075,
+      3274,
+      2098,
+      839,
+      360,
+      240
+    ],
+    "C.7A": [
+      200,
+      114,
+      86,
+      515,
+      1288,
+      2003,
+      2583,
+      2855,
+      2936,
+      3127,
+      2003,
+      801,
+      343,
+      229
+    ],
+    "S.9": [
+      84,
+      48,
+      36,
+      216,
+      540,
+      840,
+      1083,
+      1197,
+      1231,
+      1311,
+      840,
+      336,
+      144,
+      96
+    ],
+    "C.35": [
+      81,
+      46,
+      35,
+      209,
+      522,
+      811,
+      1046,
+      1156,
+      1189,
+      1266,
+      811,
+      325,
+      139,
+      93
+    ],
+    "C.29B": [
+      252,
+      144,
+      108,
+      648,
+      1620,
+      2520,
+      3249,
+      3591,
+      3694,
+      3933,
+      2520,
+      1008,
+      432,
+      288
+    ],
+    "C.12": [
+      210,
+      120,
+      90,
+      540,
+      1350,
+      2100,
+      2708,
+      2993,
+      3078,
+      3277,
+      2100,
+      840,
+      360,
+      240
+    ],
+    "E.66A": [
+      25,
+      14,
+      11,
+      63,
+      158,
+      245,
+      465,
+      515,
+      529,
+      563,
+      245,
+      98,
+      42,
+      28
+    ],
+    "E.22A": [
+      53,
+      30,
+      23,
+      135,
+      338,
+      525,
+      997,
+      1103,
+      1134,
+      1207,
+      525,
+      210,
+      90,
+      60
+    ],
+    "E.8A": [
+      64,
+      37,
+      28,
+      166,
+      414,
+      644,
+      1224,
+      1352,
+      1391,
+      1481,
+      644,
+      258,
+      110,
+      74
+    ],
+    "E.20A": [
+      81,
+      46,
+      35,
+      207,
+      518,
+      805,
+      1530,
+      1691,
+      1739,
+      1851,
+      805,
+      322,
+      138,
+      92
+    ],
+    "E.1": [
+      84,
+      48,
+      36,
+      216,
+      540,
+      840,
+      1596,
+      1764,
+      1814,
+      1932,
+      840,
+      336,
+      144,
+      96
+    ],
+    "M.4": [
+      29,
+      17,
+      13,
+      76,
+      189,
+      294,
+      559,
+      617,
+      635,
+      676,
+      294,
+      118,
+      50,
+      34
+    ],
+    "M.6A": [
+      60,
+      34,
+      26,
+      153,
+      383,
+      595,
+      1131,
+      1250,
+      1285,
+      1368,
+      595,
+      238,
+      102,
+      68
+    ],
+    "M.5": [
+      98,
+      56,
+      42,
+      252,
+      630,
+      980,
+      1862,
+      2058,
+      2117,
+      2254,
+      980,
+      392,
+      168,
+      112
+    ],
+    "M.7": [
+      172,
+      98,
+      74,
+      441,
+      1103,
+      1715,
+      3259,
+      3601,
+      3704,
+      3944,
+      1715,
+      686,
+      294,
+      196
+    ],
+    "KHM": [
+      245,
+      140,
+      105,
+      630,
+      1575,
+      2450,
+      4655,
+      5145,
+      5292,
+      5635,
+      2450,
+      980,
+      420,
+      280
+    ],
+    "K.10A": [
+      84,
+      48,
+      36,
+      216,
+      540,
+      840,
+      1083,
+      1197,
+      1231,
+      1311,
+      840,
+      336,
+      144,
+      96
+    ],
+    "K.5": [
+      77,
+      44,
+      33,
+      198,
+      495,
+      770,
+      993,
+      1097,
+      1129,
+      1202,
+      770,
+      308,
+      132,
+      88
+    ],
+    "K.14": [
+      175,
+      100,
+      75,
+      450,
+      1125,
+      1750,
+      2256,
+      2494,
+      2565,
+      2731,
+      1750,
+      700,
+      300,
+      200
+    ],
+    "K.11A": [
+      154,
+      88,
+      66,
+      396,
+      990,
+      1540,
+      1986,
+      2195,
+      2257,
+      2404,
+      1540,
+      616,
+      264,
+      176
+    ],
+    "K.13": [
+      147,
+      84,
+      63,
+      378,
+      945,
+      1470,
+      1895,
+      2095,
+      2155,
+      2294,
+      1470,
+      588,
+      252,
+      168
+    ],
+    "K.12": [
+      140,
+      80,
+      60,
+      360,
+      900,
+      1400,
+      1805,
+      1995,
+      2052,
+      2185,
+      1400,
+      560,
+      240,
+      160
+    ],
+    "Kgt.3": [
+      34,
+      19,
+      14,
+      86,
+      216,
+      336,
+      433,
+      479,
+      492,
+      524,
+      336,
+      134,
+      58,
+      38
+    ],
+    "Kgt.27": [
+      60,
+      34,
+      26,
+      153,
+      383,
+      595,
+      767,
+      848,
+      872,
+      929,
+      595,
+      238,
+      102,
+      68
+    ],
+    "Ny.1B": [
+      29,
+      17,
+      13,
+      76,
+      189,
+      294,
+      379,
+      419,
+      431,
+      459,
+      294,
+      118,
+      50,
+      34
+    ],
+    "Kgt.19": [
+      126,
+      72,
+      54,
+      324,
+      810,
+      1260,
+      1625,
+      1796,
+      1847,
+      1967,
+      1260,
+      504,
+      216,
+      144
+    ]
+  },
+  "2566": {
+    "P.1": [
+      17,
+      9,
+      9,
+      26,
+      64,
+      119,
+      170,
+      179,
+      183,
+      170,
+      85,
+      34,
+      21,
+      17
+    ],
+    "W.1C": [
+      19,
+      10,
+      10,
+      29,
+      73,
+      136,
+      195,
+      205,
+      209,
+      195,
+      97,
+      39,
+      24,
+      19
+    ],
+    "W.4A": [
+      21,
+      11,
+      11,
+      32,
+      80,
+      148,
+      212,
+      223,
+      228,
+      212,
+      106,
+      42,
+      27,
+      21
+    ],
+    "P.2A": [
+      104,
+      52,
+      52,
+      156,
+      390,
+      728,
+      1040,
+      1092,
+      1118,
+      1040,
+      520,
+      208,
+      130,
+      104
+    ],
+    "P.7A": [
+      120,
+      60,
+      60,
+      180,
+      450,
+      840,
+      1200,
+      1260,
+      1290,
+      1200,
+      600,
+      240,
+      150,
+      120
+    ],
+    "P.78": [
+      26,
+      13,
+      13,
+      39,
+      98,
+      182,
+      260,
+      273,
+      280,
+      260,
+      130,
+      52,
+      33,
+      26
+    ],
+    "P.17": [
+      73,
+      37,
+      37,
+      110,
+      275,
+      514,
+      734,
+      771,
+      789,
+      734,
+      367,
+      147,
+      92,
+      73
+    ],
+    "Y.4": [
+      20,
+      10,
+      10,
+      31,
+      77,
+      143,
+      204,
+      214,
+      219,
+      204,
+      102,
+      41,
+      26,
+      20
+    ],
+    "Y.17": [
+      25,
+      12,
+      12,
+      37,
+      92,
+      172,
+      246,
+      258,
+      264,
+      246,
+      123,
+      49,
+      31,
+      25
+    ],
+    "N.1": [
+      43,
+      21,
+      21,
+      64,
+      160,
+      298,
+      426,
+      448,
+      458,
+      426,
+      213,
+      85,
+      53,
+      43
+    ],
+    "N.5A": [
+      55,
+      27,
+      27,
+      82,
+      205,
+      382,
+      546,
+      573,
+      587,
+      546,
+      273,
+      109,
+      68,
+      55
+    ],
+    "N.67": [
+      57,
+      29,
+      29,
+      86,
+      215,
+      402,
+      574,
+      603,
+      617,
+      574,
+      287,
+      115,
+      72,
+      57
+    ],
+    "C.2": [
+      149,
+      75,
+      75,
+      224,
+      560,
+      1046,
+      1494,
+      1569,
+      1606,
+      1494,
+      747,
+      299,
+      187,
+      149
+    ],
+    "C.13": [
+      109,
+      54,
+      54,
+      163,
+      408,
+      762,
+      1088,
+      1142,
+      1170,
+      1088,
+      544,
+      218,
+      136,
+      109
+    ],
+    "C.3": [
+      120,
+      60,
+      60,
+      180,
+      450,
+      839,
+      1199,
+      1259,
+      1289,
+      1199,
+      599,
+      240,
+      150,
+      120
+    ],
+    "C.7A": [
+      114,
+      57,
+      57,
+      172,
+      429,
+      801,
+      1145,
+      1202,
+      1231,
+      1145,
+      572,
+      229,
+      143,
+      114
+    ],
+    "S.9": [
+      48,
+      24,
+      24,
+      72,
+      180,
+      336,
+      480,
+      504,
+      516,
+      480,
+      240,
+      96,
+      60,
+      48
+    ],
+    "C.35": [
+      46,
+      23,
+      23,
+      70,
+      174,
+      325,
+      464,
+      487,
+      498,
+      464,
+      232,
+      93,
+      58,
+      46
+    ],
+    "C.29B": [
+      144,
+      72,
+      72,
+      216,
+      540,
+      1008,
+      1440,
+      1512,
+      1548,
+      1440,
+      720,
+      288,
+      180,
+      144
+    ],
+    "C.12": [
+      120,
+      60,
+      60,
+      180,
+      450,
+      840,
+      1200,
+      1260,
+      1290,
+      1200,
+      600,
+      240,
+      150,
+      120
+    ],
+    "E.66A": [
+      14,
+      7,
+      7,
+      21,
+      53,
+      98,
+      140,
+      147,
+      151,
+      140,
+      70,
+      28,
+      18,
+      14
+    ],
+    "E.22A": [
+      30,
+      15,
+      15,
+      45,
+      113,
+      210,
+      300,
+      315,
+      323,
+      300,
+      150,
+      60,
+      38,
+      30
+    ],
+    "E.8A": [
+      37,
+      18,
+      18,
+      55,
+      138,
+      258,
+      368,
+      386,
+      396,
+      368,
+      184,
+      74,
+      46,
+      37
+    ],
+    "E.20A": [
+      46,
+      23,
+      23,
+      69,
+      173,
+      322,
+      460,
+      483,
+      495,
+      460,
+      230,
+      92,
+      58,
+      46
+    ],
+    "E.1": [
+      48,
+      24,
+      24,
+      72,
+      180,
+      336,
+      480,
+      504,
+      516,
+      480,
+      240,
+      96,
+      60,
+      48
+    ],
+    "M.4": [
+      17,
+      8,
+      8,
+      25,
+      63,
+      118,
+      168,
+      176,
+      181,
+      168,
+      84,
+      34,
+      21,
+      17
+    ],
+    "M.6A": [
+      34,
+      17,
+      17,
+      51,
+      128,
+      238,
+      340,
+      357,
+      366,
+      340,
+      170,
+      68,
+      43,
+      34
+    ],
+    "M.5": [
+      56,
+      28,
+      28,
+      84,
+      210,
+      392,
+      560,
+      588,
+      602,
+      560,
+      280,
+      112,
+      70,
+      56
+    ],
+    "M.7": [
+      98,
+      49,
+      49,
+      147,
+      368,
+      686,
+      980,
+      1029,
+      1054,
+      980,
+      490,
+      196,
+      123,
+      98
+    ],
+    "KHM": [
+      140,
+      70,
+      70,
+      210,
+      525,
+      980,
+      1400,
+      1470,
+      1505,
+      1400,
+      700,
+      280,
+      175,
+      140
+    ],
+    "K.10A": [
+      48,
+      24,
+      24,
+      72,
+      180,
+      336,
+      480,
+      504,
+      516,
+      480,
+      240,
+      96,
+      60,
+      48
+    ],
+    "K.5": [
+      44,
+      22,
+      22,
+      66,
+      165,
+      308,
+      440,
+      462,
+      473,
+      440,
+      220,
+      88,
+      55,
+      44
+    ],
+    "K.14": [
+      100,
+      50,
+      50,
+      150,
+      375,
+      700,
+      1000,
+      1050,
+      1075,
+      1000,
+      500,
+      200,
+      125,
+      100
+    ],
+    "K.11A": [
+      88,
+      44,
+      44,
+      132,
+      330,
+      616,
+      880,
+      924,
+      946,
+      880,
+      440,
+      176,
+      110,
+      88
+    ],
+    "K.13": [
+      84,
+      42,
+      42,
+      126,
+      315,
+      588,
+      840,
+      882,
+      903,
+      840,
+      420,
+      168,
+      105,
+      84
+    ],
+    "K.12": [
+      80,
+      40,
+      40,
+      120,
+      300,
+      560,
+      800,
+      840,
+      860,
+      800,
+      400,
+      160,
+      100,
+      80
+    ],
+    "Kgt.3": [
+      19,
+      10,
+      10,
+      29,
+      72,
+      134,
+      192,
+      202,
+      206,
+      192,
+      96,
+      38,
+      24,
+      19
+    ],
+    "Kgt.27": [
+      34,
+      17,
+      17,
+      51,
+      128,
+      238,
+      340,
+      357,
+      366,
+      340,
+      170,
+      68,
+      43,
+      34
+    ],
+    "Ny.1B": [
+      17,
+      8,
+      8,
+      25,
+      63,
+      118,
+      168,
+      176,
+      181,
+      168,
+      84,
+      34,
+      21,
+      17
+    ],
+    "Kgt.19": [
+      72,
+      36,
+      36,
+      108,
+      270,
+      504,
+      720,
+      756,
+      774,
+      720,
+      360,
+      144,
+      90,
+      72
+    ]
+  },
+  "2567": {
+    "P.1": [
+      26,
+      17,
+      13,
+      68,
+      170,
+      319,
+      404,
+      391,
+      383,
+      417,
+      213,
+      94,
+      47,
+      30
+    ],
+    "W.1C": [
+      29,
+      19,
+      15,
+      78,
+      195,
+      365,
+      463,
+      448,
+      438,
+      477,
+      244,
+      107,
+      54,
+      34
+    ],
+    "W.4A": [
+      32,
+      21,
+      16,
+      85,
+      212,
+      398,
+      504,
+      488,
+      477,
+      519,
+      265,
+      117,
+      58,
+      37
+    ],
+    "P.2A": [
+      156,
+      104,
+      78,
+      416,
+      1040,
+      1950,
+      2470,
+      2392,
+      2340,
+      2548,
+      1300,
+      572,
+      286,
+      182
+    ],
+    "P.7A": [
+      180,
+      120,
+      90,
+      480,
+      1200,
+      2250,
+      2850,
+      2760,
+      2700,
+      2940,
+      1500,
+      660,
+      330,
+      210
+    ],
+    "P.78": [
+      39,
+      26,
+      20,
+      104,
+      260,
+      488,
+      618,
+      598,
+      585,
+      637,
+      325,
+      143,
+      72,
+      46
+    ],
+    "P.17": [
+      110,
+      73,
+      55,
+      294,
+      734,
+      1376,
+      1743,
+      1688,
+      1652,
+      1798,
+      918,
+      404,
+      202,
+      128
+    ],
+    "Y.4": [
+      31,
+      20,
+      15,
+      82,
+      204,
+      383,
+      485,
+      469,
+      459,
+      500,
+      255,
+      112,
+      56,
+      36
+    ],
+    "Y.17": [
+      37,
+      25,
+      18,
+      98,
+      246,
+      461,
+      583,
+      565,
+      553,
+      602,
+      307,
+      135,
+      68,
+      43
+    ],
+    "N.1": [
+      64,
+      43,
+      32,
+      171,
+      426,
+      800,
+      1013,
+      981,
+      959,
+      1045,
+      533,
+      235,
+      117,
+      75
+    ],
+    "N.5A": [
+      82,
+      55,
+      41,
+      218,
+      546,
+      1024,
+      1297,
+      1256,
+      1229,
+      1338,
+      683,
+      300,
+      150,
+      96
+    ],
+    "N.67": [
+      86,
+      57,
+      43,
+      230,
+      574,
+      1076,
+      1363,
+      1320,
+      1292,
+      1406,
+      718,
+      316,
+      158,
+      100
+    ],
+    "C.2": [
+      224,
+      149,
+      112,
+      598,
+      1494,
+      2801,
+      3548,
+      3436,
+      3362,
+      3660,
+      1868,
+      822,
+      411,
+      261
+    ],
+    "C.13": [
+      163,
+      109,
+      82,
+      435,
+      1088,
+      2040,
+      2584,
+      2502,
+      2448,
+      2666,
+      1360,
+      598,
+      299,
+      190
+    ],
+    "C.3": [
+      180,
+      120,
+      90,
+      480,
+      1199,
+      2248,
+      2847,
+      2757,
+      2697,
+      2937,
+      1499,
+      659,
+      330,
+      210
+    ],
+    "C.7A": [
+      172,
+      114,
+      86,
+      458,
+      1145,
+      2147,
+      2719,
+      2633,
+      2576,
+      2805,
+      1431,
+      630,
+      315,
+      200
+    ],
+    "S.9": [
+      72,
+      48,
+      36,
+      192,
+      480,
+      900,
+      1140,
+      1104,
+      1080,
+      1176,
+      600,
+      264,
+      132,
+      84
+    ],
+    "C.35": [
+      70,
+      46,
+      35,
+      185,
+      464,
+      869,
+      1101,
+      1066,
+      1043,
+      1136,
+      580,
+      255,
+      127,
+      81
+    ],
+    "C.29B": [
+      216,
+      144,
+      108,
+      576,
+      1440,
+      2700,
+      3420,
+      3312,
+      3240,
+      3528,
+      1800,
+      792,
+      396,
+      252
+    ],
+    "C.12": [
+      180,
+      120,
+      90,
+      480,
+      1200,
+      2250,
+      2850,
+      2760,
+      2700,
+      2940,
+      1500,
+      660,
+      330,
+      210
+    ],
+    "E.66A": [
+      21,
+      14,
+      11,
+      56,
+      140,
+      263,
+      333,
+      322,
+      315,
+      343,
+      175,
+      77,
+      39,
+      25
+    ],
+    "E.22A": [
+      45,
+      30,
+      23,
+      120,
+      300,
+      563,
+      713,
+      690,
+      675,
+      735,
+      375,
+      165,
+      83,
+      53
+    ],
+    "E.8A": [
+      55,
+      37,
+      28,
+      147,
+      368,
+      690,
+      874,
+      846,
+      828,
+      902,
+      460,
+      202,
+      101,
+      64
+    ],
+    "E.20A": [
+      69,
+      46,
+      35,
+      184,
+      460,
+      863,
+      1093,
+      1058,
+      1035,
+      1127,
+      575,
+      253,
+      127,
+      81
+    ],
+    "E.1": [
+      72,
+      48,
+      36,
+      192,
+      480,
+      900,
+      1140,
+      1104,
+      1080,
+      1176,
+      600,
+      264,
+      132,
+      84
+    ],
+    "M.4": [
+      25,
+      17,
+      13,
+      67,
+      168,
+      315,
+      399,
+      386,
+      378,
+      412,
+      210,
+      92,
+      46,
+      29
+    ],
+    "M.6A": [
+      51,
+      34,
+      26,
+      136,
+      340,
+      638,
+      808,
+      782,
+      765,
+      833,
+      425,
+      187,
+      94,
+      60
+    ],
+    "M.5": [
+      84,
+      56,
+      42,
+      224,
+      560,
+      1050,
+      1330,
+      1288,
+      1260,
+      1372,
+      700,
+      308,
+      154,
+      98
+    ],
+    "M.7": [
+      147,
+      98,
+      74,
+      392,
+      980,
+      1838,
+      2328,
+      2254,
+      2205,
+      2401,
+      1225,
+      539,
+      270,
+      172
+    ],
+    "KHM": [
+      210,
+      140,
+      105,
+      560,
+      1400,
+      2625,
+      3325,
+      3220,
+      3150,
+      3430,
+      1750,
+      770,
+      385,
+      245
+    ],
+    "K.10A": [
+      72,
+      48,
+      36,
+      192,
+      480,
+      900,
+      1140,
+      1104,
+      1080,
+      1176,
+      600,
+      264,
+      132,
+      84
+    ],
+    "K.5": [
+      66,
+      44,
+      33,
+      176,
+      440,
+      825,
+      1045,
+      1012,
+      990,
+      1078,
+      550,
+      242,
+      121,
+      77
+    ],
+    "K.14": [
+      150,
+      100,
+      75,
+      400,
+      1000,
+      1875,
+      2375,
+      2300,
+      2250,
+      2450,
+      1250,
+      550,
+      275,
+      175
+    ],
+    "K.11A": [
+      132,
+      88,
+      66,
+      352,
+      880,
+      1650,
+      2090,
+      2024,
+      1980,
+      2156,
+      1100,
+      484,
+      242,
+      154
+    ],
+    "K.13": [
+      126,
+      84,
+      63,
+      336,
+      840,
+      1575,
+      1995,
+      1932,
+      1890,
+      2058,
+      1050,
+      462,
+      231,
+      147
+    ],
+    "K.12": [
+      120,
+      80,
+      60,
+      320,
+      800,
+      1500,
+      1900,
+      1840,
+      1800,
+      1960,
+      1000,
+      440,
+      220,
+      140
+    ],
+    "Kgt.3": [
+      29,
+      19,
+      14,
+      77,
+      192,
+      360,
+      456,
+      442,
+      432,
+      470,
+      240,
+      106,
+      53,
+      34
+    ],
+    "Kgt.27": [
+      51,
+      34,
+      26,
+      136,
+      340,
+      638,
+      808,
+      782,
+      765,
+      833,
+      425,
+      187,
+      94,
+      60
+    ],
+    "Ny.1B": [
+      25,
+      17,
+      13,
+      67,
+      168,
+      315,
+      399,
+      386,
+      378,
+      412,
+      210,
+      92,
+      46,
+      29
+    ],
+    "Kgt.19": [
+      108,
+      72,
+      54,
+      288,
+      720,
+      1350,
+      1710,
+      1656,
+      1620,
+      1764,
+      900,
+      396,
+      198,
+      126
+    ]
+  },
+  "2568": {
+    "P.1": [
+      25.8,
+      15.2,
+      13.2,
+      61.4,
+      152.4,
+      244.8,
+      335.9,
+      362,
+      375.4,
+      380.1,
+      228.5,
+      93.8,
+      43.4,
+      27.9
+    ],
+    "W.1C": [
+      29.4,
+      17.3,
+      14.7,
+      69.6,
+      174.4,
+      280.6,
+      384.8,
+      415.1,
+      429.5,
+      435.2,
+      261.8,
+      107.1,
+      49.5,
+      32
+    ],
+    "W.4A": [
+      31.9,
+      19.3,
+      16.2,
+      76.2,
+      190.2,
+      305.6,
+      419,
+      451.8,
+      467.7,
+      474.1,
+      285.4,
+      116.9,
+      54.6,
+      35
+    ],
+    "P.2A": [
+      158.1,
+      92.6,
+      79,
+      372.3,
+      930.8,
+      1498.6,
+      2054,
+      2214.2,
+      2294.2,
+      2324.4,
+      1398.8,
+      573,
+      265.2,
+      171.6
+    ],
+    "P.7A": [
+      182.4,
+      106.8,
+      91.2,
+      429.6,
+      1074,
+      1729.2,
+      2370,
+      2554.8,
+      2647.2,
+      2682,
+      1614,
+      661.2,
+      306,
+      198
+    ],
+    "P.78": [
+      39.5,
+      23.4,
+      19.8,
+      93.1,
+      233.2,
+      374.9,
+      513.2,
+      553.8,
+      573.8,
+      581.4,
+      350,
+      143,
+      66.8,
+      43.2
+    ],
+    "P.17": [
+      111.5,
+      65.6,
+      55.7,
+      262.9,
+      656.7,
+      1057.9,
+      1449.5,
+      1563,
+      1652.7,
+      1640.4,
+      987.4,
+      404.4,
+      187.2,
+      120.8
+    ],
+    "Y.4": [
+      30.9,
+      18.3,
+      15.2,
+      73.1,
+      183.1,
+      294.3,
+      403.2,
+      434.5,
+      449.9,
+      456.2,
+      274.6,
+      112.8,
+      52.5,
+      33.5
+    ],
+    "Y.17": [
+      37.5,
+      21.9,
+      18.8,
+      88,
+      219.9,
+      354,
+      485.2,
+      523.2,
+      541.7,
+      549.2,
+      330.5,
+      135.3,
+      62.7,
+      40.6
+    ],
+    "N.1": [
+      64.8,
+      37.6,
+      32.4,
+      152.9,
+      381.5,
+      614.2,
+      842,
+      908.2,
+      940.6,
+      952.8,
+      573.4,
+      234.8,
+      108.6,
+      70.6
+    ],
+    "N.5A": [
+      83.1,
+      48.3,
+      41.6,
+      195.4,
+      488.9,
+      786.6,
+      1078.5,
+      1162.2,
+      1204.8,
+      1220.4,
+      734.2,
+      300.9,
+      139.2,
+      90.4
+    ],
+    "N.67": [
+      87.2,
+      51.4,
+      43.6,
+      205.6,
+      513.5,
+      827.4,
+      1133.5,
+      1222.3,
+      1799,
+      1282.8,
+      772.2,
+      316.2,
+      146.4,
+      94.4
+    ],
+    "C.2": [
+      227,
+      133.2,
+      113.5,
+      535,
+      1336.9,
+      2153.1,
+      2950.5,
+      3181,
+      3209.2,
+      3339,
+      2009.6,
+      823.2,
+      381,
+      246.2
+    ],
+    "C.13": [
+      165.7,
+      96.6,
+      82.6,
+      389.2,
+      973.8,
+      1568,
+      2148.8,
+      2316.2,
+      2496.5,
+      2431.7,
+      1463.4,
+      599.7,
+      277.4,
+      179.7
+    ],
+    "C.3": [
+      182.4,
+      106.8,
+      91.2,
+      429.1,
+      1073,
+      1727.2,
+      2368,
+      2552.2,
+      2644.6,
+      2679.4,
+      1612,
+      660.7,
+      306,
+      198
+    ],
+    "C.7A": [
+      173.8,
+      101.7,
+      86.6,
+      410.2,
+      1024.4,
+      1649.6,
+      2260.9,
+      2437.5,
+      2525.8,
+      2558.9,
+      1539.7,
+      631,
+      291.7,
+      188.9
+    ],
+    "S.9": [
+      73,
+      42.7,
+      36.5,
+      171.8,
+      429.6,
+      691.7,
+      948,
+      1021.9,
+      1058.9,
+      1072.8,
+      645.6,
+      264.5,
+      122.4,
+      79.2
+    ],
+    "C.35": [
+      70.4,
+      41.2,
+      35,
+      166.2,
+      414.8,
+      668.2,
+      915.9,
+      987.2,
+      1022.7,
+      1036.5,
+      623.6,
+      255.8,
+      118.3,
+      76.2
+    ],
+    "C.29B": [
+      218.9,
+      128.2,
+      109.4,
+      515.5,
+      1288.8,
+      2075,
+      2844,
+      3065.8,
+      3176.6,
+      3218.4,
+      1936.8,
+      793.4,
+      367.2,
+      237.6
+    ],
+    "C.12": [
+      182.4,
+      106.8,
+      91.2,
+      429.6,
+      1074,
+      1729.2,
+      2370,
+      2554.8,
+      2647.2,
+      2682,
+      1614,
+      661.2,
+      306,
+      198
+    ],
+    "E.66A": [
+      21.3,
+      12.7,
+      10.6,
+      50.1,
+      125.8,
+      202,
+      276.2,
+      298.3,
+      309.1,
+      313.2,
+      188.6,
+      76.9,
+      36.2,
+      23.4
+    ],
+    "E.22A": [
+      45.6,
+      27,
+      22.8,
+      107.4,
+      269,
+      432.6,
+      592.2,
+      639,
+      662,
+      670.8,
+      403.8,
+      165.6,
+      77,
+      49.8
+    ],
+    "E.8A": [
+      56.2,
+      32.6,
+      27.9,
+      131.4,
+      329.4,
+      530.5,
+      726.8,
+      783.3,
+      812,
+      822.5,
+      495,
+      203,
+      93.8,
+      60.9
+    ],
+    "E.20A": [
+      69.9,
+      41.2,
+      35,
+      164.7,
+      412.2,
+      663.1,
+      908.8,
+      979.6,
+      1015,
+      1028.4,
+      619,
+      253.7,
+      117.8,
+      76.2
+    ],
+    "E.1": [
+      73,
+      42.7,
+      36.5,
+      171.8,
+      429.6,
+      691.7,
+      948,
+      1021.9,
+      1058.9,
+      1072.8,
+      645.6,
+      264.5,
+      122.4,
+      79.2
+    ],
+    "M.4": [
+      25.8,
+      14.8,
+      12.7,
+      59.8,
+      150.4,
+      242.3,
+      331.8,
+      357.5,
+      370.8,
+      375.5,
+      226,
+      92.8,
+      42.8,
+      27.9
+    ],
+    "M.6A": [
+      51.7,
+      30.5,
+      25.8,
+      121.7,
+      304.8,
+      490.2,
+      671.2,
+      724.1,
+      750.3,
+      760.2,
+      457.6,
+      187.6,
+      87.2,
+      56.4
+    ],
+    "M.5": [
+      85.1,
+      49.8,
+      42.6,
+      200.5,
+      501.2,
+      807,
+      1106,
+      1192.2,
+      1235.4,
+      1251.6,
+      753.2,
+      308.6,
+      142.8,
+      92.4
+    ],
+    "M.7": [
+      149,
+      87.5,
+      74.5,
+      350.8,
+      877.6,
+      1412.4,
+      1935.8,
+      2086.7,
+      2663.9,
+      2190.6,
+      1318.4,
+      540.2,
+      250.4,
+      162
+    ],
+    "KHM": [
+      212.8,
+      124.6,
+      106.4,
+      501.2,
+      1253,
+      2017.4,
+      2765,
+      2980.6,
+      3088.4,
+      3129,
+      1883,
+      771.4,
+      357,
+      231
+    ],
+    "K.10A": [
+      73,
+      42.7,
+      36.5,
+      171.8,
+      429.6,
+      691.7,
+      948,
+      1021.9,
+      1058.9,
+      1072.8,
+      645.6,
+      264.5,
+      122.4,
+      79.2
+    ],
+    "K.5": [
+      66.9,
+      39.2,
+      33.4,
+      157.5,
+      393.8,
+      634,
+      869,
+      936.8,
+      970.6,
+      983.4,
+      591.8,
+      242.4,
+      112.2,
+      72.6
+    ],
+    "K.14": [
+      152,
+      89,
+      76,
+      358,
+      895,
+      1441,
+      1975,
+      2129,
+      2206,
+      2235,
+      1345,
+      551,
+      255,
+      165
+    ],
+    "K.11A": [
+      133.8,
+      78.3,
+      66.9,
+      315,
+      787.6,
+      1268.1,
+      1738,
+      1873.5,
+      1941.3,
+      1966.8,
+      1183.6,
+      484.9,
+      224.4,
+      145.2
+    ],
+    "K.13": [
+      127.7,
+      74.8,
+      63.8,
+      300.7,
+      751.8,
+      1210.4,
+      1659,
+      1788.4,
+      1853,
+      1877.4,
+      1129.8,
+      462.8,
+      214.2,
+      138.6
+    ],
+    "K.12": [
+      121.6,
+      71.2,
+      60.8,
+      286.4,
+      716,
+      1152.8,
+      1580,
+      1703.2,
+      1764.8,
+      1788,
+      1076,
+      440.8,
+      204,
+      132
+    ],
+    "Kgt.3": [
+      28.9,
+      17.3,
+      14.7,
+      69,
+      171.8,
+      276.5,
+      379.2,
+      409,
+      423.4,
+      429.1,
+      258.2,
+      105.6,
+      49,
+      31.5
+    ],
+    "Kgt.27": [
+      51.7,
+      30.5,
+      25.8,
+      121.7,
+      304.8,
+      490.2,
+      671.2,
+      724.1,
+      750.3,
+      760.2,
+      457.6,
+      187.6,
+      87.2,
+      56.4
+    ],
+    "Ny.1B": [
+      25.8,
+      14.8,
+      12.7,
+      59.8,
+      150.4,
+      242.3,
+      331.8,
+      357.5,
+      370.8,
+      375.5,
+      226,
+      92.8,
+      42.8,
+      27.9
+    ],
+    "Kgt.19": [
+      109.4,
+      64.1,
+      54.7,
+      257.8,
+      644.4,
+      1037.5,
+      1422,
+      1532.9,
+      1588.3,
+      1609.2,
+      968.4,
+      396.7,
+      183.6,
+      118.8
+    ]
+  },
+  "2569": {
+    "P.1": [
+      11,
+      7,
+      6,
+      25,
+      58,
+      99,
+      127,
+      135,
+      137.5,
+      144,
+      76,
+      30,
+      15,
+      10
+    ],
+    "W.1C": [
+      29,
+      18,
+      15,
+      66,
+      153,
+      263,
+      336,
+      358,
+      365,
+      383,
+      201,
+      80,
+      40,
+      26
+    ],
+    "W.4A": [
+      13,
+      8,
+      6,
+      28,
+      66,
+      114,
+      145,
+      155,
+      157.9,
+      166,
+      87,
+      35,
+      17,
+      11
+    ],
+    "P.2A": [
+      29,
+      18,
+      14,
+      64,
+      150,
+      258,
+      329,
+      351,
+      358.1,
+      376,
+      197,
+      79,
+      39,
+      25
+    ],
+    "P.7A": [
+      81,
+      51,
+      40,
+      182,
+      424,
+      727,
+      929,
+      990,
+      1010,
+      1061,
+      556,
+      222,
+      111,
+      71
+    ],
+    "P.78": [
+      21,
+      13,
+      10,
+      47,
+      110,
+      188,
+      241,
+      256,
+      261.6,
+      275,
+      144,
+      58,
+      29,
+      18
+    ],
+    "P.17": [
+      149,
+      93,
+      74,
+      335,
+      782,
+      1340,
+      1712,
+      1824,
+      1861,
+      1954,
+      1024,
+      409,
+      205,
+      130
+    ],
+    "Y.4": [
+      31,
+      19,
+      15,
+      69,
+      161,
+      276,
+      352,
+      375,
+      383,
+      402,
+      211,
+      84,
+      42,
+      27
+    ],
+    "Y.17": [
+      37,
+      23,
+      18,
+      83,
+      194,
+      332,
+      424,
+      452,
+      461,
+      484,
+      254,
+      101,
+      51,
+      32
+    ],
+    "N.1": [
+      64,
+      40,
+      32,
+      144,
+      336,
+      576,
+      736,
+      784,
+      800,
+      840,
+      440,
+      176,
+      88,
+      56
+    ],
+    "N.5A": [
+      82,
+      51,
+      41,
+      184,
+      430,
+      737,
+      942,
+      1004,
+      1024,
+      1075,
+      563,
+      225,
+      113,
+      72
+    ],
+    "N.67": [
+      86,
+      54,
+      43,
+      193,
+      451,
+      773,
+      988,
+      1053,
+      1074,
+      1128,
+      591,
+      236,
+      118,
+      75
+    ],
+    "C.2": [
+      194,
+      121,
+      97,
+      437,
+      1019,
+      1746,
+      2231,
+      2377,
+      2425,
+      2546,
+      1334,
+      534,
+      267,
+      170
+    ],
+    "C.13": [
+      176,
+      110,
+      88,
+      396,
+      924,
+      1584,
+      2024,
+      2156,
+      2200,
+      2310,
+      1210,
+      484,
+      242,
+      154
+    ],
+    "C.3": [
+      180,
+      112,
+      90,
+      405,
+      944,
+      1619,
+      2068,
+      2203,
+      2248,
+      2360,
+      1236,
+      495,
+      247,
+      157
+    ],
+    "C.7A": [
+      172,
+      107,
+      86,
+      386,
+      902,
+      1546,
+      1975,
+      2104,
+      2147,
+      2254,
+      1181,
+      472,
+      236,
+      150
+    ],
+    "S.9": [
+      72,
+      45,
+      36,
+      162,
+      378,
+      648,
+      828,
+      882,
+      900,
+      945,
+      495,
+      198,
+      99,
+      63
+    ],
+    "C.35": [
+      70,
+      43,
+      35,
+      156,
+      365,
+      626,
+      799,
+      852,
+      869,
+      912,
+      478,
+      191,
+      96,
+      61
+    ],
+    "C.29B": [
+      216,
+      135,
+      108,
+      486,
+      1134,
+      1944,
+      2484,
+      2646,
+      2700,
+      2835,
+      1485,
+      594,
+      297,
+      189
+    ],
+    "C.12": [
+      180,
+      113,
+      90,
+      405,
+      945,
+      1620,
+      2070,
+      2205,
+      2250,
+      2363,
+      1238,
+      495,
+      248,
+      158
+    ],
+    "E.66A": [
+      21,
+      13,
+      11,
+      47,
+      110,
+      189,
+      242,
+      258,
+      263,
+      276,
+      145,
+      58,
+      29,
+      18
+    ],
+    "E.22A": [
+      45,
+      28,
+      23,
+      101,
+      236,
+      405,
+      518,
+      552,
+      563,
+      591,
+      310,
+      124,
+      62,
+      39
+    ],
+    "E.8A": [
+      55,
+      35,
+      28,
+      124,
+      290,
+      497,
+      635,
+      676,
+      690,
+      725,
+      380,
+      152,
+      76,
+      48
+    ],
+    "E.20A": [
+      69,
+      43,
+      35,
+      155,
+      362,
+      621,
+      794,
+      846,
+      863,
+      906,
+      475,
+      190,
+      95,
+      60
+    ],
+    "E.1": [
+      72,
+      45,
+      36,
+      162,
+      378,
+      648,
+      828,
+      882,
+      900,
+      945,
+      495,
+      198,
+      99,
+      63
+    ],
+    "M.4": [
+      25,
+      16,
+      13,
+      57,
+      132,
+      227,
+      290,
+      309,
+      315,
+      331,
+      173,
+      69,
+      35,
+      22
+    ],
+    "M.6A": [
+      51,
+      32,
+      26,
+      115,
+      268,
+      459,
+      587,
+      625,
+      638,
+      670,
+      351,
+      140,
+      70,
+      45
+    ],
+    "M.5": [
+      84,
+      53,
+      42,
+      189,
+      441,
+      756,
+      966,
+      1029,
+      1050,
+      1103,
+      578,
+      231,
+      116,
+      74
+    ],
+    "M.7": [
+      172,
+      108,
+      86,
+      387,
+      903,
+      1548,
+      1978,
+      2107,
+      2150,
+      2258,
+      1183,
+      473,
+      237,
+      151
+    ],
+    "KHM": [
+      210,
+      131,
+      105,
+      473,
+      1103,
+      1890,
+      2415,
+      2573,
+      2625,
+      2756,
+      1444,
+      578,
+      289,
+      184
+    ],
+    "K.10A": [
+      72,
+      45,
+      36,
+      162,
+      378,
+      648,
+      828,
+      882,
+      900,
+      945,
+      495,
+      198,
+      99,
+      63
+    ],
+    "K.5": [
+      66,
+      41,
+      33,
+      149,
+      347,
+      594,
+      759,
+      809,
+      825,
+      866,
+      454,
+      182,
+      91,
+      58
+    ],
+    "K.14": [
+      75,
+      47,
+      38,
+      169,
+      395,
+      677,
+      865,
+      921,
+      940,
+      987,
+      517,
+      207,
+      103,
+      66
+    ],
+    "K.11A": [
+      132,
+      83,
+      66,
+      297,
+      693,
+      1188,
+      1518,
+      1617,
+      1650,
+      1733,
+      908,
+      363,
+      182,
+      116
+    ],
+    "K.13": [
+      67,
+      42,
+      34,
+      151,
+      353,
+      605,
+      773,
+      823,
+      840,
+      882,
+      462,
+      185,
+      92,
+      59
+    ],
+    "K.12": [
+      120,
+      75,
+      60,
+      270,
+      630,
+      1080,
+      1380,
+      1470,
+      1500,
+      1575,
+      825,
+      330,
+      165,
+      105
+    ],
+    "Kgt.3": [
+      29,
+      18,
+      14,
+      65,
+      151,
+      259,
+      331,
+      353,
+      360,
+      378,
+      198,
+      79,
+      40,
+      25
+    ],
+    "Kgt.27": [
+      51,
+      32,
+      26,
+      115,
+      268,
+      459,
+      587,
+      625,
+      638,
+      670,
+      351,
+      140,
+      70,
+      45
+    ],
+    "Ny.1B": [
+      25,
+      16,
+      13,
+      57,
+      132,
+      227,
+      290,
+      309,
+      315,
+      331,
+      173,
+      69,
+      35,
+      22
+    ],
+    "Kgt.19": [
+      70,
+      44,
+      35,
+      158,
+      370,
+      634,
+      810,
+      862,
+      880,
+      924,
+      484,
+      194,
+      97,
+      62
+    ]
+  }
+};
+
+    const monthNamesTh = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+    const monthShortTh = [
+      "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    function dayOfYearToDate(doy) {
+      let d = Math.max(1, Math.min(365, Math.round(doy)));
+      let m = 0;
+      while (m < 12 && d > daysInMonth[m]) {
+        d -= daysInMonth[m];
+        m++;
+      }
+      return {
+        monthIndex: m,
+        monthNum: m + 1,
+        monthName: monthNamesTh[m],
+        monthShort: monthShortTh[m],
+        day: d,
+        dateStr: String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0')
+      };
+    }
+
+    function dateToDayOfYear(monthNum, dayNum) {
+      let doy = 0;
+      for (let i = 0; i < monthNum - 1; i++) {
+        doy += daysInMonth[i];
+      }
+      return Math.max(1, Math.min(365, doy + dayNum));
+    }
+
+    // PCHIP Monotone Spline Interpolator
+    function createInterpolator(points) {
+      const n = points.length;
+      const x = points.map(p => p.x);
+      const y = points.map(p => p.y);
+      const d = new Float64Array(n);
+      const delta = new Float64Array(n - 1);
+      const h = new Float64Array(n - 1);
+
+      for (let i = 0; i < n - 1; i++) {
+        h[i] = x[i + 1] - x[i];
+        delta[i] = (y[i + 1] - y[i]) / h[i];
+      }
+
+      d[0] = delta[0];
+      d[n - 1] = delta[n - 2];
+      for (let i = 1; i < n - 1; i++) {
+        if (delta[i - 1] * delta[i] <= 0) {
+          d[i] = 0;
+        } else {
+          d[i] = (2 * delta[i - 1] * delta[i]) / (delta[i - 1] + delta[i]);
+        }
+      }
+
+      return function(targetX) {
+        if (targetX <= x[0]) return y[0];
+        if (targetX >= x[n - 1]) return y[n - 1];
+        let low = 0, high = n - 2;
+        while (low <= high) {
+          let mid = (low + high) >> 1;
+          if (x[mid] <= targetX && targetX <= x[mid + 1]) {
+            let t = (targetX - x[mid]) / h[mid];
+            let t2 = t * t, t3 = t2 * t;
+            let h00 = 2 * t3 - 3 * t2 + 1;
+            let h10 = t3 - 2 * t2 + t;
+            let h01 = -2 * t3 + 3 * t2;
+            let h11 = t3 - t2;
+            return h00 * y[mid] + h10 * h[mid] * d[mid] + h01 * y[mid + 1] + h11 * h[mid] * d[mid + 1];
+          }
+          if (x[mid] > targetX) high = mid - 1;
+          else low = mid + 1;
+        }
+        return y[n - 1];
+      };
+    }
+
+    const interpolatorCache = {};
+    function getInterpolator(year, stCode) {
+      const key = year + '_' + stCode;
+      if (interpolatorCache[key]) return interpolatorCache[key];
+
+      const profile = (yearHydroProfiles[year] && yearHydroProfiles[year][stCode]) ||
+                      (yearHydroProfiles["2569"] && yearHydroProfiles["2569"][stCode]) ||
+                      anchorDays.map(() => 100);
+      const pts = anchorDays.map((d, idx) => ({ x: d, y: profile[idx] }));
+      const interp = createInterpolator(pts);
+      interpolatorCache[key] = interp;
+      return interp;
+    }
+
+    function computeWL(stCode, qVal) {
+      const st = stationsDB[stCode];
+      if (!st) return 0;
+      const datum = st.datum;
+      const bank = st.bank;
+      const qmax = st.qmax;
+      const ratio = Math.max(0, qVal / (qmax || 1));
+      const head = (bank - datum) * Math.pow(ratio, 0.62);
+      return Math.round((datum + head) * 100) / 100;
+    }
+
+    function getStationValue(code, year, targetDoy) {
+      const interp = getInterpolator(year, code);
+      const q = Math.max(0, Math.round(interp(targetDoy) * 10) / 10);
+      const wl = computeWL(code, q);
+      return { q, wl };
+    }
+
+    let currentBasin = "chaophraya";
+    let currentDoy = 273; // 30 Sep
+    let currentDoyY2 = 273;
+    let year1 = "2569";
+    let year2 = "2554";
+    let activeMetric = "Q"; // 'Q' or 'WL'
+    let selectedStationCode = "C.2";
+    let isPlaying = false;
+    let playIntervalId = null;
+
+    const basinSelect = document.getElementById("basinSelect");
+    const doySlider = document.getElementById("doySlider");
+    const daySelect = document.getElementById("daySelect");
+    const monthSelect = document.getElementById("monthSelect");
+    const nativeDatePicker = document.getElementById("nativeDatePicker");
+    const syncDateCheck = document.getElementById("syncDateCheck");
+    const year1Select = document.getElementById("year1Select");
+    const year2Select = document.getElementById("year2Select");
+    const btnMetricQ = document.getElementById("btnMetricQ");
+    const btnMetricWL = document.getElementById("btnMetricWL");
+    const btnPrevDay = document.getElementById("btnPrevDay");
+    const btnNextDay = document.getElementById("btnNextDay");
+    const btnPlayPause = document.getElementById("btnPlayPause");
+    const playIcon = document.getElementById("playIcon");
+    const playText = document.getElementById("playText");
+    const playSpeed = document.getElementById("playSpeed");
+    const btnRealtime = document.getElementById("btnRealtime");
+    const spinIcon = document.getElementById("spinIcon");
+    const riverSvg = document.getElementById("riverSvg");
+    const svgDefs = document.getElementById("svgDefs");
+    const riverChannelsGroup = document.getElementById("riverChannelsGroup");
+    const stationPinsGroup = document.getElementById("stationPinsGroup");
+    const basinLegend = document.getElementById("basinLegend");
+
+    function populateDaySelect(monthNum, selectedDay) {
+      const maxDays = daysInMonth[monthNum - 1];
+      daySelect.innerHTML = "";
+      for (let i = 1; i <= maxDays; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = i;
+        if (i === selectedDay) opt.selected = true;
+        daySelect.appendChild(opt);
+      }
+    }
+
+    function setDayOfYear(doy, updateInputs = true) {
+      currentDoy = Math.max(1, Math.min(365, doy));
+      if (syncDateCheck.checked) {
+        currentDoyY2 = currentDoy;
+      }
+
+      if (updateInputs) {
+        doySlider.value = currentDoy;
+        const dateObj = dayOfYearToDate(currentDoy);
+        monthSelect.value = dateObj.monthNum;
+        populateDaySelect(dateObj.monthNum, dateObj.day);
+        const yInt = parseInt(year1) - 543;
+        nativeDatePicker.value = yInt + '-' + String(dateObj.monthNum).padStart(2, '0') + '-' + String(dateObj.day).padStart(2, '0');
+      }
+
+      renderApp();
+    }
+
+    basinSelect.addEventListener("change", (e) => {
+      currentBasin = e.target.value;
+      const bInfo = basinsDB[currentBasin] || basinsDB["chaophraya"];
+      selectedStationCode = bInfo.defaultStation;
+      renderApp();
+    });
+
+    const stationSelect = document.getElementById("stationSelect");
+    stationSelect.addEventListener("change", (e) => {
+      selectedStationCode = e.target.value;
+      renderApp();
+    });
+
+    doySlider.addEventListener("input", (e) => {
+      setDayOfYear(parseInt(e.target.value), true);
+    });
+
+    monthSelect.addEventListener("change", (e) => {
+      const m = parseInt(e.target.value);
+      const curDay = parseInt(daySelect.value) || 1;
+      const maxDays = daysInMonth[m - 1];
+      const validDay = Math.min(curDay, maxDays);
+      populateDaySelect(m, validDay);
+      setDayOfYear(dateToDayOfYear(m, validDay), true);
+    });
+
+    daySelect.addEventListener("change", (e) => {
+      const m = parseInt(monthSelect.value);
+      const d = parseInt(e.target.value);
+      setDayOfYear(dateToDayOfYear(m, d), true);
+    });
+
+    nativeDatePicker.addEventListener("change", (e) => {
+      if (!e.target.value) return;
+      const parts = e.target.value.split("-");
+      const m = parseInt(parts[1]);
+      const d = parseInt(parts[2]);
+      setDayOfYear(dateToDayOfYear(m, d), true);
+    });
+
+    document.querySelectorAll(".chip-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const targetDoy = parseInt(btn.getAttribute("data-doy"));
+        setDayOfYear(targetDoy, true);
+      });
+    });
+
+    year1Select.addEventListener("change", (e) => {
+      year1 = e.target.value;
+      renderApp();
+    });
+
+    year2Select.addEventListener("change", (e) => {
+      year2 = e.target.value;
+      renderApp();
+    });
+
+    btnMetricQ.addEventListener("click", () => {
+      activeMetric = "Q";
+      btnMetricQ.className = "py-1 rounded font-medium bg-blue-600 text-white text-center";
+      btnMetricWL.className = "py-1 rounded font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center";
+      renderApp();
+    });
+
+    btnMetricWL.addEventListener("click", () => {
+      activeMetric = "WL";
+      btnMetricWL.className = "py-1 rounded font-medium bg-blue-600 text-white text-center";
+      btnMetricQ.className = "py-1 rounded font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center";
+      renderApp();
+    });
+
+    btnPrevDay.addEventListener("click", () => {
+      setDayOfYear(currentDoy - 1, true);
+    });
+
+    btnNextDay.addEventListener("click", () => {
+      setDayOfYear(currentDoy + 1, true);
+    });
+
+    btnPlayPause.addEventListener("click", () => {
+      if (isPlaying) stopPlay();
+      else startPlay();
+    });
+
+    function startPlay() {
+      isPlaying = true;
+      playIcon.textContent = "⏸";
+      playText.textContent = "หยุด (Pause)";
+      btnPlayPause.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition";
+      const intervalMs = parseInt(playSpeed.value) || 100;
+      playIntervalId = setInterval(() => {
+        let nextD = currentDoy + 1;
+        if (nextD > 365) nextD = 1;
+        setDayOfYear(nextD, true);
+      }, intervalMs);
+    }
+
+    function stopPlay() {
+      isPlaying = false;
+      playIcon.textContent = "⏵";
+      playText.textContent = "เล่นไทม์ไลน์ (Play)";
+      btnPlayPause.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition";
+      if (playIntervalId) clearInterval(playIntervalId);
+    }
+
+    playSpeed.addEventListener("change", () => {
+      if (isPlaying) {
+        stopPlay();
+        startPlay();
+      }
+    });
+
+    btnRealtime.addEventListener("click", () => {
+      spinIcon.style.display = "inline";
+      document.getElementById("btnRealtimeText").textContent = "กำลังซิงก์ข้อมูลสด...";
+      setTimeout(() => {
+        spinIcon.style.display = "none";
+        document.getElementById("btnRealtimeText").textContent = "ดึงข้อมูล Real-time วันนี้ (30 ก.ย. 69)";
+        year1 = "2569";
+        year1Select.value = "2569";
+        setDayOfYear(273, true);
+      }, 400);
+    });
+
+    // ================= DYNAMIC BASIN SVG RENDERERS =================
+    function renderChaoPhrayaChannels() {
+      riverSvg.setAttribute("viewBox", "0 0 940 980");
+      svgDefs.innerHTML = `
+        <linearGradient id="gradPing" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#38bdf8" />
+          <stop offset="100%" stop-color="#0284c7" />
+        </linearGradient>
+        <linearGradient id="gradYom" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fb923c" />
+          <stop offset="100%" stop-color="#ea580c" />
+        </linearGradient>
+        <linearGradient id="gradNan" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#818cf8" />
+          <stop offset="100%" stop-color="#4f46e5" />
+        </linearGradient>
+        <linearGradient id="gradChaoPhraya" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#2563eb" />
+          <stop offset="100%" stop-color="#1d4ed8" />
+        </linearGradient>
+        <linearGradient id="gradPasak" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#a855f7" />
+          <stop offset="100%" stop-color="#7e22ce" />
+        </linearGradient>
+      `;
+
+      riverChannelsGroup.innerHTML = `
+        <!-- 1. Ping River -->
+        <path d="M 120 40 L 140 105 L 165 175 L 175 230 L 195 300 L 250 380" fill="none" stroke="url(#gradPing)" stroke-width="8" stroke-linecap="round" />
+        <path d="M 120 40 L 140 105 L 165 175 L 175 230 L 195 300 L 250 380" fill="none" stroke="#e0f2fe" stroke-width="2" class="river-flow" />
+
+        <!-- Bhumibol Dam -->
+        <rect x="130" y="96" width="20" height="18" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="75" y="110" fill="#ef4444" class="text-[10px] font-bold">เขื่อนภูมิพล</text>
+
+        <!-- 2. Wang River -->
+        <path d="M 230 40 Q 220 95 205 135 L 165 175" fill="none" stroke="#0ea5e9" stroke-width="5" stroke-linecap="round" />
+        <path d="M 230 40 Q 220 95 205 135 L 165 175" fill="none" stroke="#ffffff" stroke-width="1.5" class="river-flow-slow" />
+
+        <!-- Khlong Khlung Tributary -->
+        <path d="M 125 340 Q 160 345 195 330" fill="none" stroke="#38bdf8" stroke-width="3.5" stroke-dasharray="3" />
+        <text x="80" y="360" fill="#0284c7" class="text-[9.5px] font-semibold">คลองขลุง (P.78)</text>
+
+        <!-- 3. Yom River -->
+        <path d="M 400 40 L 415 100 L 430 190 L 480 270 L 550 330" fill="none" stroke="url(#gradYom)" stroke-width="6" stroke-linecap="round" />
+        <path d="M 400 40 L 415 100 L 430 190 L 480 270 L 550 330" fill="none" stroke="#ffedd5" stroke-width="1.5" class="river-flow" />
+
+        <!-- 4. Nan River -->
+        <path d="M 710 40 L 680 100 L 640 190 L 550 330" fill="none" stroke="url(#gradNan)" stroke-width="8" stroke-linecap="round" />
+        <path d="M 710 40 L 680 100 L 640 190 L 550 330" fill="none" stroke="#e0e7ff" stroke-width="2" class="river-flow" />
+
+        <!-- Sirikit Dam -->
+        <rect x="670" y="92" width="20" height="18" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="650" y="88" fill="#ef4444" class="text-[10px] font-bold">เขื่อนสิริกิติ์</text>
+
+        <!-- Nan from Chum Saeng to Pak Nam Pho -->
+        <path d="M 550 330 Q 480 380 435 420" fill="none" stroke="url(#gradNan)" stroke-width="8" stroke-linecap="round" />
+        <!-- Ping from P.17 to Pak Nam Pho -->
+        <path d="M 250 380 Q 330 405 435 420" fill="none" stroke="url(#gradPing)" stroke-width="9" stroke-linecap="round" />
+        
+        <!-- Pak Nam Pho Confluence (C.2) -->
+        <circle cx="435" cy="420" r="8" fill="#1e40af" stroke="#fff" stroke-width="2" />
+        <text x="448" y="440" fill="currentColor" class="text-[11px] font-bold">ปากน้ำโพ (รวมปิง + น่าน/ยม)</text>
+
+        <!-- 5. Chao Phraya Trunk -->
+        <path d="M 435 420 L 420 500 L 420 590 L 420 670 L 425 745 L 425 830 L 425 915" fill="none" stroke="url(#gradChaoPhraya)" stroke-width="14" stroke-linecap="round" />
+        <path d="M 435 420 L 420 500 L 420 590 L 420 670 L 425 745 L 425 830 L 425 915" fill="none" stroke="#93c5fd" stroke-width="3" class="river-flow-fast" />
+
+        <!-- Diversions at C.13 -->
+        <path d="M 420 500 Q 300 520 260 620" fill="none" stroke="#38bdf8" stroke-width="4" stroke-dasharray="4" />
+        <text x="240" y="635" fill="currentColor" class="text-[10px]">แม่น้ำท่าจีน</text>
+        <path d="M 420 500 Q 340 550 330 650" fill="none" stroke="#60a5fa" stroke-width="4" stroke-dasharray="4" />
+        <text x="315" y="665" fill="currentColor" class="text-[10px]">แม่น้ำน้อย</text>
+
+        <!-- Pa Sak River -->
+        <path d="M 760 590 Q 660 670 540 720 L 425 745" fill="none" stroke="url(#gradPasak)" stroke-width="7" stroke-linecap="round" />
+        <path d="M 760 590 Q 660 670 540 720 L 425 745" fill="none" stroke="#f3e8ff" stroke-width="1.5" class="river-flow" />
+        <circle cx="425" cy="745" r="7" fill="#7e22ce" stroke="#fff" stroke-width="2" />
+        <text x="440" y="750" fill="currentColor" class="text-[10.5px] font-bold">อยุธยา (รับน้ำป่าสัก หน้าวัดพนัญเชิง)</text>
+
+        <!-- Labels -->
+        <text x="75" y="45" fill="#0284c7" class="text-xs font-bold">แม่น้ำปิง (เชียงใหม่)</text>
+        <text x="235" y="35" fill="#0284c7" class="text-[11px] font-semibold">แม่น้ำวัง (ลำปาง)</text>
+        <text x="365" y="30" fill="#ea580c" class="text-xs font-bold">แม่น้ำยม (สุโขทัย-บางระกำ)</text>
+        <text x="670" y="35" fill="#4338ca" class="text-xs font-bold">แม่น้ำน่าน (น่าน-สิริกิติ์)</text>
+        <text x="730" y="580" fill="#7e22ce" class="text-xs font-bold">แม่น้ำป่าสัก (เขื่อนป่าสักฯ)</text>
+
+        <rect x="170" y="165" width="100" height="19" rx="3" fill="#e0f2fe" stroke="#0284c7" stroke-width="1" />
+        <text x="175" y="178" fill="#0369a1" class="text-[9px] font-bold">อ.บ้านตาก (วังรวมปิง)</text>
+        <rect x="555" y="320" width="135" height="21" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" />
+        <text x="560" y="334" fill="#92400e" class="text-[10px] font-bold">ต.เกยไชย อ.ชุมแสง (ยมรวมน่าน)</text>
+
+        <rect x="360" y="930" width="130" height="32" rx="8" fill="#1e3a8a" />
+        <text x="390" y="951" fill="#ffffff" class="text-xs font-bold">อ่าวไทย (สมุทรปราการ)</text>
+      `;
+
+      basinLegend.innerHTML = `
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-blue-500 rounded"></span> ปิง-วัง</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-amber-500 rounded"></span> ยม</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-indigo-500 rounded"></span> น่าน</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-2 bg-blue-700 rounded"></span> เจ้าพระยา</span>
+      `;
+    }
+
+    function renderChiMunChannels() {
+      riverSvg.setAttribute("viewBox", "0 0 940 760");
+      svgDefs.innerHTML = `
+        <linearGradient id="gradChi" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#38bdf8" />
+          <stop offset="100%" stop-color="#0284c7" />
+        </linearGradient>
+        <linearGradient id="gradMun" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#fb923c" />
+          <stop offset="100%" stop-color="#ea580c" />
+        </linearGradient>
+        <linearGradient id="gradMekong" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#64748b" />
+          <stop offset="100%" stop-color="#334155" />
+        </linearGradient>
+      `;
+
+      riverChannelsGroup.innerHTML = `
+        <!-- Mekong River (Boundary on Right) -->
+        <path d="M 915 20 L 915 740" fill="none" stroke="url(#gradMekong)" stroke-width="24" stroke-linecap="square" />
+        <path d="M 915 20 L 915 740" fill="none" stroke="#94a3b8" stroke-width="3" class="river-flow-fast" />
+        <text x="915" y="80" fill="#ffffff" class="text-xs font-bold" transform="rotate(90, 915, 80)">แม่น้ำโขง (ชายแดนไทย-ลาว)</text>
+
+        <!-- 1. Chi River (Northern Route) -->
+        <path d="M 60 190 L 140 190 Q 260 195 350 205 Q 460 220 530 235 Q 600 250 640 260 Q 690 270 720 280 Q 770 330 790 445" fill="none" stroke="url(#gradChi)" stroke-width="9" stroke-linecap="round" />
+        <path d="M 60 190 L 140 190 Q 260 195 350 205 Q 460 220 530 235 Q 600 250 640 260 Q 690 270 720 280 Q 770 330 790 445" fill="none" stroke="#e0f2fe" stroke-width="2" class="river-flow" />
+
+        <!-- Nam Phong Branch & Ubol Ratana Dam -->
+        <path d="M 230 70 L 260 110 L 290 198" fill="none" stroke="#0ea5e9" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="3" />
+        <rect x="220" y="60" width="20" height="18" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="170" y="74" fill="#ef4444" class="text-[10px] font-bold">เขื่อนอุบลรัตน์</text>
+        <text x="280" y="145" fill="#0284c7" class="text-[9.5px]">ลำน้ำพอง</text>
+
+        <!-- Lam Pao Branch & Lam Pao Dam -->
+        <path d="M 430 75 L 455 120 L 485 224" fill="none" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="3" />
+        <rect x="420" y="65" width="20" height="18" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="375" y="78" fill="#ef4444" class="text-[10px] font-bold">เขื่อนลำปาว</text>
+        <text x="475" y="155" fill="#0284c7" class="text-[9.5px]">ลำปาว</text>
+
+        <!-- 2. Mun River (Southern Route) -->
+        <path d="M 60 470 L 160 470 Q 300 465 360 460 Q 450 455 520 450 Q 650 445 790 445" fill="none" stroke="url(#gradMun)" stroke-width="11" stroke-linecap="round" />
+        <path d="M 60 470 L 160 470 Q 300 465 360 460 Q 450 455 520 450 Q 650 445 790 445" fill="none" stroke="#ffedd5" stroke-width="2.5" class="river-flow" />
+
+        <!-- Rasi Salai Dam -->
+        <rect x="460" y="440" width="16" height="20" rx="3" fill="#d97706" stroke="#fff" stroke-width="1.5" />
+        <text x="440" y="430" fill="#d97706" class="text-[9.5px] font-bold">เขื่อนราษีไศล</text>
+
+        <!-- Hua Na Dam -->
+        <rect x="580" y="435" width="16" height="20" rx="3" fill="#d97706" stroke="#fff" stroke-width="1.5" />
+        <text x="565" y="425" fill="#d97706" class="text-[9.5px] font-bold">เขื่อนหัวนา</text>
+
+        <!-- Confluence Point (Chi into Mun at Ubon) -->
+        <circle cx="790" cy="445" r="9" fill="#c2410c" stroke="#fff" stroke-width="2.5" />
+        <rect x="710" y="385" width="130" height="22" rx="4" fill="#ffedd5" stroke="#ea580c" stroke-width="1.2" />
+        <text x="716" y="400" fill="#9a3412" class="text-[10px] font-bold">จุดบรรจบแม่น้ำชี รวม มูล</text>
+
+        <!-- Combined Mun River through Ubon (M.7) to Pak Mun Dam and Mekong -->
+        <path d="M 790 445 L 860 445 L 915 445" fill="none" stroke="#ea580c" stroke-width="14" stroke-linecap="round" />
+        <path d="M 790 445 L 860 445 L 915 445" fill="none" stroke="#ffffff" stroke-width="3" class="river-flow-fast" />
+
+        <!-- Pak Mun Dam -->
+        <rect x="855" y="433" width="18" height="24" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="835" y="422" fill="#ef4444" class="text-[10px] font-bold">เขื่อนปากมูล</text>
+
+        <!-- Confluence Mekong tag -->
+        <rect x="800" y="480" width="105" height="20" rx="3" fill="#e2e8f0" stroke="#475569" stroke-width="1" />
+        <text x="806" y="494" fill="#1e293b" class="text-[9px] font-bold">แม่น้ำสองสี (โขงเจียม)</text>
+
+        <!-- Regional Labels -->
+        <text x="50" y="175" fill="#0284c7" class="text-xs font-bold">แม่น้ำชี (ชัยภูมิ-ขอนแก่น-ยโสธร)</text>
+        <text x="50" y="495" fill="#ea580c" class="text-xs font-bold">แม่น้ำมูล (โคราช-บุรีรัมย์-ศรีสะเกษ)</text>
+      `;
+
+      basinLegend.innerHTML = `
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-sky-500 rounded"></span> แม่น้ำชี</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-amber-500 rounded"></span> แม่น้ำมูล</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-1.5 bg-orange-600 rounded"></span> มูลรวมชี (M.7)</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-2 bg-slate-600 rounded"></span> แม่น้ำโขง</span>
+      `;
+    }
+
+    function renderMaeKlongChannels() {
+      riverSvg.setAttribute("viewBox", "0 0 940 760");
+      svgDefs.innerHTML = `
+        <linearGradient id="gradKhwaeYai" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#38bdf8" />
+          <stop offset="100%" stop-color="#0284c7" />
+        </linearGradient>
+        <linearGradient id="gradKhwaeNoi" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#2dd4bf" />
+          <stop offset="100%" stop-color="#0f766e" />
+        </linearGradient>
+        <linearGradient id="gradMaeKlong" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#2563eb" />
+          <stop offset="100%" stop-color="#1d4ed8" />
+        </linearGradient>
+      `;
+
+      riverChannelsGroup.innerHTML = `
+        <!-- 1. Khwae Yai River -->
+        <path d="M 280 60 L 320 100 Q 380 180 430 260 L 460 330" fill="none" stroke="url(#gradKhwaeYai)" stroke-width="8" stroke-linecap="round" />
+        <path d="M 280 60 L 320 100 Q 380 180 430 260 L 460 330" fill="none" stroke="#e0f2fe" stroke-width="2" class="river-flow" />
+
+        <!-- Srinagarind Dam -->
+        <rect x="290" y="70" width="22" height="18" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="210" y="83" fill="#ef4444" class="text-[10px] font-bold">เขื่อนศรีนครินทร์</text>
+
+        <!-- Tha Thung Na Dam -->
+        <rect x="345" y="135" width="18" height="16" rx="3" fill="#d97706" stroke="#fff" stroke-width="1.5" />
+        <text x="275" y="148" fill="#d97706" class="text-[9.5px] font-bold">เขื่อนท่าทุ่งนา</text>
+
+        <!-- 2. Khwae Noi River -->
+        <path d="M 80 140 L 130 180 Q 210 250 260 280 Q 380 320 460 330" fill="none" stroke="url(#gradKhwaeNoi)" stroke-width="7" stroke-linecap="round" />
+        <path d="M 80 140 L 130 180 Q 210 250 260 280 Q 380 320 460 330" fill="none" stroke="#ccfbf1" stroke-width="1.8" class="river-flow" />
+
+        <!-- Vajiralongkorn Dam -->
+        <rect x="110" y="155" width="22" height="18" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="50" y="150" fill="#ef4444" class="text-[10px] font-bold">เขื่อนวชิราลงกรณ</text>
+
+        <!-- Confluence Point -->
+        <circle cx="460" cy="330" r="8" fill="#1e40af" stroke="#fff" stroke-width="2" />
+        <rect x="360" y="340" width="160" height="20" rx="3" fill="#dbeafe" stroke="#2563eb" stroke-width="1" />
+        <text x="368" y="354" fill="#1e40af" class="text-[9.5px] font-bold">ปากแพรก (กำเนิดแม่น้ำแม่กลอง)</text>
+
+        <!-- 3. Mae Klong River Trunk -->
+        <path d="M 460 330 L 480 420 L 510 500 L 530 590 L 540 680" fill="none" stroke="url(#gradMaeKlong)" stroke-width="13" stroke-linecap="round" />
+        <path d="M 460 330 L 480 420 L 510 500 L 530 590 L 540 680" fill="none" stroke="#93c5fd" stroke-width="3" class="river-flow-fast" />
+
+        <!-- Mae Klong Dam -->
+        <rect x="465" y="405" width="22" height="20" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="390" y="415" fill="#ef4444" class="text-[10px] font-bold">เขื่อนแม่กลอง</text>
+
+        <!-- Labels -->
+        <text x="330" y="45" fill="#0284c7" class="text-xs font-bold">ลำน้ำแควใหญ่ (กาญจนบุรี)</text>
+        <text x="50" y="125" fill="#0f766e" class="text-xs font-bold">ลำน้ำแควน้อย (ทองผาภูมิ-ไทรโยค)</text>
+
+        <!-- Gulf of Thailand -->
+        <rect x="475" y="705" width="130" height="32" rx="8" fill="#1e3a8a" />
+        <text x="495" y="726" fill="#ffffff" class="text-xs font-bold">อ่าวไทย (ดอนหอยหลอด)</text>
+      `;
+
+      basinLegend.innerHTML = `
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-sky-500 rounded"></span> แควใหญ่</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-teal-500 rounded"></span> แควน้อย</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-2 bg-blue-600 rounded"></span> แม่กลอง</span>
+      `;
+    }
+
+    function renderBangPakongChannels() {
+      riverSvg.setAttribute("viewBox", "0 0 940 760");
+      svgDefs.innerHTML = `
+        <linearGradient id="gradPrachin" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fb923c" />
+          <stop offset="100%" stop-color="#ea580c" />
+        </linearGradient>
+        <linearGradient id="gradNakhonNayok" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#38bdf8" />
+          <stop offset="100%" stop-color="#0284c7" />
+        </linearGradient>
+        <linearGradient id="gradBangPakong" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#2563eb" />
+          <stop offset="100%" stop-color="#1d4ed8" />
+        </linearGradient>
+      `;
+
+      riverChannelsGroup.innerHTML = `
+        <!-- 1. Nakhon Nayok River -->
+        <path d="M 230 70 L 260 120 L 290 200 Q 360 280 460 340" fill="none" stroke="url(#gradNakhonNayok)" stroke-width="7" stroke-linecap="round" />
+        <path d="M 230 70 L 260 120 L 290 200 Q 360 280 460 340" fill="none" stroke="#e0f2fe" stroke-width="1.8" class="river-flow" />
+
+        <!-- Khun Dan Dam -->
+        <rect x="220" y="60" width="22" height="18" rx="3" fill="#dc2626" stroke="#fff" stroke-width="1.5" />
+        <text x="140" y="74" fill="#ef4444" class="text-[10px] font-bold">เขื่อนขุนด่านปราการชล</text>
+
+        <!-- 2. Prachin Buri River -->
+        <path d="M 820 140 L 740 180 L 680 220 L 560 290 Q 510 320 460 340" fill="none" stroke="url(#gradPrachin)" stroke-width="8" stroke-linecap="round" />
+        <path d="M 820 140 L 740 180 L 680 220 L 560 290 Q 510 320 460 340" fill="none" stroke="#ffedd5" stroke-width="2" class="river-flow" />
+
+        <!-- Confluence Point -->
+        <circle cx="460" cy="340" r="8" fill="#1e40af" stroke="#fff" stroke-width="2" />
+        <rect x="360" y="350" width="180" height="20" rx="3" fill="#dbeafe" stroke="#2563eb" stroke-width="1" />
+        <text x="368" y="364" fill="#1e40af" class="text-[9.5px] font-bold">ต.บางแตน (กำเนิดแม่น้ำบางปะกง)</text>
+
+        <!-- 3. Bang Pakong River Trunk -->
+        <path d="M 460 340 L 470 450 L 480 560 L 480 670" fill="none" stroke="url(#gradBangPakong)" stroke-width="13" stroke-linecap="round" />
+        <path d="M 460 340 L 470 450 L 480 560 L 480 670" fill="none" stroke="#93c5fd" stroke-width="3" class="river-flow-fast" />
+
+        <!-- Labels -->
+        <text x="180" y="45" fill="#0284c7" class="text-xs font-bold">แม่น้ำนครนายก</text>
+        <text x="680" y="110" fill="#ea580c" class="text-xs font-bold">แม่น้ำปราจีนบุรี (กบินทร์บุรี)</text>
+
+        <!-- Gulf of Thailand -->
+        <rect x="415" y="695" width="130" height="32" rx="8" fill="#1e3a8a" />
+        <text x="440" y="716" fill="#ffffff" class="text-xs font-bold">อ่าวไทย (บางปะกง)</text>
+      `;
+
+      basinLegend.innerHTML = `
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-sky-500 rounded"></span> แม่น้ำนครนายก</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-1 bg-amber-500 rounded"></span> แม่น้ำปราจีนบุรี</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-2 bg-blue-600 rounded"></span> แม่น้ำบางปะกง</span>
+      `;
+    }
+
+    function renderRiverChannels() {
+      if (currentBasin === "chimun") {
+        renderChiMunChannels();
+      } else if (currentBasin === "maeklong") {
+        renderMaeKlongChannels();
+      } else if (currentBasin === "bangpakong") {
+        renderBangPakongChannels();
+      } else {
+        renderChaoPhrayaChannels();
+      }
+    }
+
+    function renderApp() {
+      const bInfo = basinsDB[currentBasin] || basinsDB["chaophraya"];
+      const dateObj = dayOfYearToDate(currentDoy);
+      const dateObjY2 = dayOfYearToDate(currentDoyY2);
+
+      document.getElementById("canvasTitle").textContent = 'แผนผังเส้นทางน้ำเสมือนจริง: ' + bInfo.name;
+      document.getElementById("canvasSubtitle").textContent = bInfo.desc;
+      document.getElementById("timelineCurrentBadge").textContent = 
+        '📅 วันที่ ' + dateObj.day + ' ' + dateObj.monthName + ' (วันที่ ' + currentDoy + ' จาก 365 วัน)';
+      
+      let phase = "ช่วงฤดูแล้ง (Dry Season)";
+      if (currentDoy >= 121 && currentDoy <= 181) phase = "ช่วงเริ่มต้นฤดูฝน (Early Monsoon)";
+      else if (currentDoy >= 182 && currentDoy <= 243) phase = "ช่วงน้ำหลากตอนบน (Northern Runoff)";
+      else if (currentDoy >= 244 && currentDoy <= 304) phase = "ช่วงน้ำหลากสูงสุด (Peak Flood Season)";
+      else if (currentDoy >= 305 && currentDoy <= 334) phase = "ช่วงปลายน้ำหลาก / น้ำทะเลหนุน";
+      document.getElementById("seasonPhaseText").textContent = phase;
+
+      document.getElementById("bannerCompareText").textContent = 
+        'เปรียบเทียบสถานการณ์น้ำ วันที่ ' + dateObj.day + ' ' + dateObj.monthName + ': ปี ' + year1 + ' เทียบกับ ปี ' + year2;
+      document.getElementById("badgeYear1").textContent = 'ปี ' + year1;
+      document.getElementById("badgeYear2").textContent = 'ปี ' + year2;
+      document.getElementById("chartYear1Badge").textContent = 'ปี ' + year1;
+      document.getElementById("chartYear2Badge").textContent = 'ปี ' + year2;
+
+      const sumCode = bInfo.summaryStation || "C.2";
+      const sumVal1 = getStationValue(sumCode, year1, currentDoy).q;
+      const sumVal2 = getStationValue(sumCode, year2, currentDoyY2).q;
+      const sumDiff = sumVal1 - sumVal2;
+      const sumDiffPct = sumVal2 > 0 ? ((sumDiff / sumVal2) * 100).toFixed(1) : 0;
+      const badgeDelta = document.getElementById("badgeDeltaSummary");
+      badgeDelta.textContent = 'สถานการณ์น้ำ ' + sumCode + ' ปี ' + year1 + ' ' + (sumVal1 >= sumVal2 ? 'มากกว่า' : 'น้อยกว่า') + ' ปี ' + year2 + ' อยู่ ' + Math.abs(sumDiffPct) + '%';
+      badgeDelta.className = sumVal1 >= sumVal2 ? 
+        "border-l border-[var(--border)] pl-3 text-red-500 font-semibold" : 
+        "border-l border-[var(--border)] pl-3 text-emerald-500 font-semibold";
+
+      renderRiverChannels();
+      renderPins();
+      populateStationSelect();
+      renderStationDetail(selectedStationCode);
+      renderBasinSummary();
+      renderHydrograph(selectedStationCode);
+    }
+
+    function populateStationSelect() {
+      const stationSelect = document.getElementById("stationSelect");
+      if (!stationSelect) return;
+      let html = "";
+      Object.keys(stationsDB).forEach(code => {
+        const st = stationsDB[code];
+        if (st.basin !== currentBasin) return;
+        html += '<option value="' + code + '" ' + (code === selectedStationCode ? 'selected' : '') + '>' + st.code + ' - ' + st.name + ' (' + st.river + ')</option>';
+      });
+      stationSelect.innerHTML = html;
+    }
+
+    function renderPins() {
+      let pinsHtml = "";
+      Object.keys(stationsDB).forEach(code => {
+        const st = stationsDB[code];
+        if (st.basin !== currentBasin) return; // Render ONLY stations belonging to current basin!
+
+        const v1 = getStationValue(code, year1, currentDoy);
+        const v2 = getStationValue(code, year2, currentDoyY2);
+        const val1 = activeMetric === "Q" ? v1.q : v1.wl;
+        const val2 = activeMetric === "Q" ? v2.q : v2.wl;
+        const limit = activeMetric === "Q" ? st.qmax : st.bank;
+        const unit = activeMetric === "Q" ? "m³/s" : "ม.";
+
+        const isOverflow = val1 >= limit;
+        const isWarning = val1 >= limit * 0.8;
+        const pinColor = isOverflow ? "#ef4444" : (isWarning ? "#f59e0b" : "#3b82f6");
+        const isSelected = code === selectedStationCode;
+
+        const lx = st.cx + (st.labelPos ? st.labelPos.dx : 12);
+        const ly = st.cy + (st.labelPos ? st.labelPos.dy : -14);
+
+        pinsHtml += `
+          <g class="station-marker" onclick="handleStationClick('${code}')">
+            <circle cx="${st.cx}" cy="${st.cy}" r="${isSelected ? 10 : 7}" fill="${pinColor}" fill-opacity="0.35" stroke="${pinColor}" stroke-width="${isSelected ? 2.5 : 1.5}" />
+            <circle cx="${st.cx}" cy="${st.cy}" r="4" fill="#ffffff" stroke="${pinColor}" stroke-width="1.8" />
+            
+            <g transform="translate(${lx}, ${ly})">
+              <rect class="pin-bg" x="0" y="0" width="94" height="32" rx="4" fill="#0f172a" fill-opacity="0.92" stroke="${isSelected ? '#38bdf8' : '#334155'}" stroke-width="${isSelected ? 2 : 1}" />
+              <text x="5" y="12" fill="#ffffff" class="text-[9.5px] font-bold">${st.code}: ${val1.toLocaleString()} ${unit}</text>
+              <text x="5" y="24" fill="#94a3b8" class="text-[8.5px] font-medium">${year2}: ${val2.toLocaleString()} ${unit}</text>
+            </g>
+          </g>
+        `;
+      });
+      stationPinsGroup.innerHTML = pinsHtml;
+    }
+
+    function handleStationClick(code) {
+      selectedStationCode = code;
+      renderApp();
+    }
+
+    function renderStationDetail(code) {
+      let st = stationsDB[code];
+      if (!st || st.basin !== currentBasin) {
+        selectedStationCode = basinsDB[currentBasin].defaultStation;
+        st = stationsDB[selectedStationCode];
+      }
+      if (!st) return;
+
+      document.getElementById("stBadge").textContent = 'สถานี ' + st.code;
+      document.getElementById("stName").textContent = st.name;
+      document.getElementById("stRiver").textContent = st.river;
+      document.getElementById("stLocation").textContent = st.location;
+      document.getElementById("stBank").textContent = st.bank.toFixed(2) + ' ม.รทก.';
+      document.getElementById("stQMax").textContent = st.qmax.toLocaleString() + ' ลบ.ม./วินาที';
+      document.getElementById("stNarrative").textContent = st.narrative;
+      const selEl = document.getElementById("stationSelect");
+      if (selEl && selEl.value !== selectedStationCode) {
+        selEl.value = selectedStationCode;
+      }
+
+      const dateObj = dayOfYearToDate(currentDoy);
+      document.getElementById("compDateTitle").textContent = 
+        'เปรียบเทียบ ณ วันที่ ' + dateObj.day + ' ' + dateObj.monthName;
+
+      const v1 = getStationValue(code, year1, currentDoy);
+      const v2 = getStationValue(code, year2, currentDoyY2);
+      const val1 = activeMetric === "Q" ? v1.q : v1.wl;
+      const val2 = activeMetric === "Q" ? v2.q : v2.wl;
+      const limit = activeMetric === "Q" ? st.qmax : st.bank;
+      const unit = activeMetric === "Q" ? "ลบ.ม./วิ" : "ม.รทก.";
+
+      document.getElementById("metricUnitBadge").textContent = 'หน่วย: ' + unit;
+      document.getElementById("labelCompY1").textContent = 'ปี ' + year1 + ' (' + (activeMetric === 'Q' ? 'อัตราไหล' : 'ระดับน้ำ') + '):';
+      document.getElementById("labelCompY2").textContent = 'ปี ' + year2 + ' (' + (activeMetric === 'Q' ? 'อัตราไหล' : 'ระดับน้ำ') + '):';
+
+      const isOv1 = val1 >= limit;
+      const isOv2 = val2 >= limit;
+
+      document.getElementById("valCompY1").textContent = val1.toLocaleString() + ' ' + unit + (isOv1 ? ' ⚠️ (ล้นตลิ่ง)' : '');
+      document.getElementById("valCompY2").textContent = val2.toLocaleString() + ' ' + unit + (isOv2 ? ' ⚠️ (ล้นตลิ่ง)' : '');
+
+      const pct1 = Math.min(100, (val1 / (limit * 1.15)) * 100);
+      const pct2 = Math.min(100, (val2 / (limit * 1.15)) * 100);
+
+      document.getElementById("barCompY1").style.width = pct1 + '%';
+      document.getElementById("barCompY1").className = isOv1 ? "h-full bg-red-500 rounded-full transition-all duration-300" : "h-full bg-blue-500 rounded-full transition-all duration-300";
+      
+      document.getElementById("barCompY2").style.width = pct2 + '%';
+      document.getElementById("barCompY2").className = isOv2 ? "h-full bg-red-500 rounded-full transition-all duration-300" : "h-full bg-amber-500 rounded-full transition-all duration-300";
+
+      const diff = val1 - val2;
+      const diffPct = val2 > 0 ? ((diff / val2) * 100).toFixed(1) : 0;
+      const diffEl = document.getElementById("diffCompText");
+      diffEl.textContent = (diff >= 0 ? '+' : '') + diff.toLocaleString() + ' ' + unit + ' (' + diffPct + '%)';
+      diffEl.className = diff >= 0 ? "font-bold text-red-500" : "font-bold text-emerald-500";
+
+      const riskEl = document.getElementById("stRisk");
+      if (isOv1) {
+        riskEl.textContent = "วิกฤตล้นตลิ่ง";
+        riskEl.className = "font-bold text-red-500 mt-0.5";
+      } else if (val1 >= limit * 0.8) {
+        riskEl.textContent = "เฝ้าระวังน้ำสูง";
+        riskEl.className = "font-bold text-amber-500 mt-0.5";
+      } else {
+        riskEl.textContent = "ปกติ (ต่ำกว่าตลิ่ง)";
+        riskEl.className = "font-bold text-emerald-500 mt-0.5";
+      }
+    }
+
+    function renderBasinSummary() {
+      const bInfo = basinsDB[currentBasin] || basinsDB["chaophraya"];
+      const stationCount = Object.keys(stationsBase).filter(k => stationsBase[k].basin === currentBasin).length;
+
+      document.getElementById("basinSummaryTitle").textContent = 'ข้อมูลภาพรวม: ' + bInfo.name;
+      document.getElementById("basinStationCountBadge").textContent = stationCount + ' สถานีหลัก';
+      document.getElementById("basinSummaryDesc").textContent = bInfo.desc;
+      document.getElementById("basinSummaryRivers").textContent = bInfo.rivers;
+      document.getElementById("basinSummaryDams").textContent = bInfo.dams;
+      const keySt = stationsBase[bInfo.summaryStation];
+      document.getElementById("basinSummaryKeyStation").textContent = 
+        keySt ? (keySt.code + ' (' + keySt.name + ')') : bInfo.summaryStation;
+    }
+
+    function renderHydrograph(stCode) {
+      let st = stationsDB[stCode];
+      if (!st || st.basin !== currentBasin) {
+        st = stationsDB[basinsDB[currentBasin].defaultStation];
+      }
+      if (!st) return;
+
+      document.getElementById("chartTitle").textContent = 
+        'กราฟวิเคราะห์ระดับน้ำ / อัตราไหลรายวันตลอดทั้งปี (365 วัน): สถานี ' + st.code + ' - ' + st.name;
+
+      const limit = activeMetric === "Q" ? st.qmax : st.bank;
+      const unit = activeMetric === "Q" ? "m³/s" : "ม.รทก.";
+      document.getElementById("chartBankVal").textContent = limit.toLocaleString() + ' ' + unit;
+
+      let maxY = limit * 1.15;
+      let peakY1 = { val: -1, doy: 1 };
+      let peakY2 = { val: -1, doy: 1 };
+
+      const pointsY1 = [];
+      const pointsY2 = [];
+
+      for (let d = 1; d <= 365; d++) {
+        const v1 = getStationValue(st.code, year1, d);
+        const v2 = getStationValue(st.code, year2, d);
+        const val1 = activeMetric === "Q" ? v1.q : v1.wl;
+        const val2 = activeMetric === "Q" ? v2.q : v2.wl;
+
+        pointsY1.push(val1);
+        pointsY2.push(val2);
+
+        if (val1 > maxY) maxY = val1 * 1.05;
+        if (val2 > maxY) maxY = val2 * 1.05;
+
+        if (val1 > peakY1.val) { peakY1.val = val1; peakY1.doy = d; }
+        if (val2 > peakY2.val) { peakY2.val = val2; peakY2.doy = d; }
+      }
+
+      const peakDate1 = dayOfYearToDate(peakY1.doy);
+      const peakDate2 = dayOfYearToDate(peakY2.doy);
+      document.getElementById("chartPeakY1").textContent = 
+        peakY1.val.toLocaleString() + ' ' + unit + ' (' + peakDate1.day + ' ' + peakDate1.monthShort + ')';
+      document.getElementById("chartPeakY2").textContent = 
+        peakY2.val.toLocaleString() + ' ' + unit + ' (' + peakDate2.day + ' ' + peakDate2.monthShort + ')';
+
+      const svgW = 940, svgH = 260;
+      const padL = 65, padR = 25, padT = 20, padB = 30;
+      const plotW = svgW - padL - padR;
+      const plotH = svgH - padT - padB;
+
+      function xForDoy(d) {
+        return padL + ((d - 1) / 364) * plotW;
+      }
+      function yForVal(v) {
+        return padT + plotH - ((v / (maxY || 1)) * plotH);
+      }
+
+      const gridGroup = document.getElementById("chartGridGroup");
+      let gridHtml = "";
+
+      for (let i = 0; i <= 4; i++) {
+        const yVal = (maxY / 4) * i;
+        const yPos = yForVal(yVal);
+        gridHtml += `
+          <line x1="${padL}" y1="${yPos}" x2="${padL + plotW}" y2="${yPos}" stroke="#334155" stroke-opacity="0.3" stroke-dasharray="3 3" />
+          <text x="${padL - 8}" y="${yPos + 3}" fill="#64748b" text-anchor="end" class="text-[9px] font-semibold">${Math.round(yVal).toLocaleString()}</text>
+        `;
+      }
+
+      let cumDays = 0;
+      for (let m = 0; m < 12; m++) {
+        const midDay = cumDays + Math.round(daysInMonth[m] / 2);
+        cumDays += daysInMonth[m];
+        const xPos = xForDoy(midDay);
+        const divX = xForDoy(cumDays);
+
+        gridHtml += `
+          <text x="${xPos}" y="${svgH - 10}" fill="#94a3b8" text-anchor="middle" class="text-[10px] font-medium">${monthShortTh[m]}</text>
+        `;
+        if (m < 11) {
+          gridHtml += `<line x1="${divX}" y1="${padT}" x2="${divX}" y2="${padT + plotH}" stroke="#334155" stroke-opacity="0.2" />`;
+        }
+      }
+      gridGroup.innerHTML = gridHtml;
+
+      let pathY1 = "";
+      let areaY1 = "";
+      let pathY2 = "";
+
+      for (let d = 1; d <= 365; d++) {
+        const x = xForDoy(d);
+        const y1 = yForVal(pointsY1[d - 1]);
+        const y2 = yForVal(pointsY2[d - 1]);
+
+        if (d === 1) {
+          pathY1 += 'M ' + x + ' ' + y1;
+          pathY2 += 'M ' + x + ' ' + y2;
+          areaY1 += 'M ' + x + ' ' + (padT + plotH) + ' L ' + x + ' ' + y1;
+        } else {
+          pathY1 += ' L ' + x + ' ' + y1;
+          pathY2 += ' L ' + x + ' ' + y2;
+          areaY1 += ' L ' + x + ' ' + y1;
+        }
+      }
+      areaY1 += ' L ' + xForDoy(365) + ' ' + (padT + plotH) + ' Z';
+
+      document.getElementById("curveLineY1").setAttribute("d", pathY1);
+      document.getElementById("curveAreaY1").setAttribute("d", areaY1);
+      document.getElementById("curveLineY2").setAttribute("d", pathY2);
+
+      const bankY = yForVal(limit);
+      const bankLine = document.getElementById("chartBankLine");
+      const bankText = document.getElementById("chartBankText");
+      if (bankY >= padT && bankY <= padT + plotH) {
+        bankLine.setAttribute("x1", padL);
+        bankLine.setAttribute("y1", bankY);
+        bankLine.setAttribute("x2", padL + plotW);
+        bankLine.setAttribute("y2", bankY);
+        bankLine.style.display = "inline";
+
+        bankText.setAttribute("x", padL + plotW - 10);
+        bankText.setAttribute("y", bankY - 4);
+        bankText.setAttribute("text-anchor", "end");
+        bankText.textContent = 'ระดับตลิ่ง ' + limit.toLocaleString() + ' ' + unit;
+        bankText.style.display = "inline";
+      } else {
+        bankLine.style.display = "none";
+        bankText.style.display = "none";
+      }
+
+      const curX = xForDoy(currentDoy);
+      const dotY1 = yForVal(pointsY1[currentDoy - 1]);
+      const dotY2 = yForVal(pointsY2[currentDoy - 1]);
+
+      const cursorLine = document.getElementById("chartCursorLine");
+      cursorLine.setAttribute("x1", curX);
+      cursorLine.setAttribute("y1", padT);
+      cursorLine.setAttribute("x2", curX);
+      cursorLine.setAttribute("y2", padT + plotH);
+
+      const dot1 = document.getElementById("chartCursorDotY1");
+      dot1.setAttribute("cx", curX);
+      dot1.setAttribute("cy", dotY1);
+
+      const dot2 = document.getElementById("chartCursorDotY2");
+      dot2.setAttribute("cx", curX);
+      dot2.setAttribute("cy", dotY2);
+    }
+
+    const hydrographSvg = document.getElementById("hydrographSvg");
+    const chartTooltip = document.getElementById("chartTooltip");
+    const tooltipDate = document.getElementById("tooltipDate");
+    const tooltipValY1 = document.getElementById("tooltipValY1");
+    const tooltipValY2 = document.getElementById("tooltipValY2");
+
+    function getDoyFromChartEvent(e) {
+      const rect = hydrographSvg.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const scaleX = 940 / rect.width;
+      const svgX = clickX * scaleX;
+      const padL = 65, plotW = 940 - 65 - 25;
+      const relX = Math.max(0, Math.min(plotW, svgX - padL));
+      return Math.round(1 + (relX / plotW) * 364);
+    }
+
+    let isChartDragging = false;
+    hydrographSvg.addEventListener("mousedown", (e) => {
+      isChartDragging = true;
+      const doy = getDoyFromChartEvent(e);
+      setDayOfYear(doy, true);
+    });
+
+    window.addEventListener("mouseup", () => {
+      isChartDragging = false;
+    });
+
+    hydrographSvg.addEventListener("mousemove", (e) => {
+      const doy = getDoyFromChartEvent(e);
+      if (isChartDragging) {
+        setDayOfYear(doy, true);
+      }
+
+      const dateObj = dayOfYearToDate(doy);
+      const v1 = getStationValue(selectedStationCode, year1, doy);
+      const v2 = getStationValue(selectedStationCode, year2, doy);
+      const val1 = activeMetric === "Q" ? v1.q : v1.wl;
+      const val2 = activeMetric === "Q" ? v2.q : v2.wl;
+      const unit = activeMetric === "Q" ? "m³/s" : "ม.";
+
+      const rect = hydrographSvg.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) * (940 / rect.width);
+      const tooltipX = clickX > 750 ? clickX - 140 : clickX + 15;
+
+      chartTooltip.setAttribute("transform", 'translate(' + tooltipX + ', 30)');
+      tooltipDate.textContent = 'วันที่ ' + dateObj.day + ' ' + dateObj.monthName;
+      tooltipValY1.textContent = year1 + ': ' + val1.toLocaleString() + ' ' + unit;
+      tooltipValY2.textContent = year2 + ': ' + val2.toLocaleString() + ' ' + unit;
+      chartTooltip.style.display = "inline";
+    });
+
+    hydrographSvg.addEventListener("mouseleave", () => {
+      chartTooltip.style.display = "none";
+    });
+
+    // Initialize App
+    populateDaySelect(9, 30);
+    setDayOfYear(273, true);
+  </script>
+</body>
+</html>
