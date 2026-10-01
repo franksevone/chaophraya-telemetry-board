@@ -109,13 +109,13 @@
           
           <!-- Live Indicator & Station Measurement Time Tag -->
           <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+            <span id="btnLiveBadge" title="คลิกเพื่อรีเฟรชข้อมูลสถานีทันที" class="cursor-pointer inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 active:scale-95 transition">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-pulse"></span>
               <span id="liveStatusText">ข้อมูลสด LIVE</span>
             </span>
 
             <span id="stationDataTimeTag" class="text-[9.5px] sm:text-[10.5px] text-slate-400 font-mono-num">
-              (ข้อมูลสถานี: 08:00 น.)
+              (รอบสถานี: 09:00 น.)
             </span>
           </div>
 
@@ -387,7 +387,7 @@
 
   <!-- Interactive JavaScript & Real-time Live Ticking Clock & Live API Fetch -->
   <script>
-    // Live Telemetry Station Configuration
+    // Live Telemetry Station Configuration (Updated to 09:00 Reading)
     const STATIONS_CONFIG = {
       "C.13": {
         code: "C.13",
@@ -401,9 +401,9 @@
         diffArrowId: "diffDamQArrow",
         diffTextId: "diffDamQText",
         badgeCrisisId: "badgeDamCrisis",
-        defaultQ: 2300,
+        defaultQ: 2320,
         defaultPrevQ: 2300,
-        defaultWL: 15.46
+        defaultWL: 15.50
       },
       "C.2": {
         code: "C.2",
@@ -417,9 +417,9 @@
         diffArrowId: "diffC2QArrow",
         diffTextId: "diffC2QText",
         badgeCrisisId: "badgeC2Crisis",
-        defaultQ: 2604,
+        defaultQ: 2597,
         defaultPrevQ: 2604,
-        defaultWL: 24.09
+        defaultWL: 24.08
       },
       "P.17": {
         code: "P.17",
@@ -433,9 +433,9 @@
         diffArrowId: "diffP17QArrow",
         diffTextId: "diffP17QText",
         badgeCrisisId: "badgeP17Crisis",
-        defaultQ: 1491,
+        defaultQ: 1460,
         defaultPrevQ: 1491,
-        defaultWL: 37.65
+        defaultWL: 37.59
       },
       "N.67": {
         code: "N.67",
@@ -449,9 +449,9 @@
         diffArrowId: "diffN67QArrow",
         diffTextId: "diffN67QText",
         badgeCrisisId: "badgeN67Crisis",
-        defaultQ: 1098,
+        defaultQ: 1100,
         defaultPrevQ: 1098,
-        defaultWL: 26.42
+        defaultWL: 26.43
       }
     };
 
@@ -706,9 +706,14 @@
       const cache = loadSavedHistory();
 
       try {
-        const apiUrl = "https://api-v3.thaiwater.net/api/v1/thaiwater30/public/waterlevel_load";
+        const apiUrl = "https://api-v3.thaiwater.net/api/v1/thaiwater30/public/waterlevel_load?t=" + Date.now();
         const response = await fetch(apiUrl, {
-          headers: { 'Accept': 'application/json' },
+          cache: "no-store",
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
           signal: AbortSignal.timeout(8000)
         });
 
@@ -729,7 +734,7 @@
         const p17Item = findStation("P.17");
         const n67Item = findStation("N.67");
 
-        let stationDt = "08:00";
+        let stationDt = "09:00";
 
         // Process C.13 (Dam)
         if (c13Item) {
@@ -778,7 +783,7 @@
         saveHistory(cache);
 
         if (stationTag) {
-          stationTag.textContent = '(ข้อมูลสถานี: ' + stationDt + ' น.)';
+          stationTag.textContent = '(รอบสถานี: ' + stationDt + ' น.)';
         }
         statusText.textContent = "ข้อมูลสด LIVE";
       } catch (err) {
@@ -788,13 +793,20 @@
         renderCard("C.2", STATIONS_CONFIG["C.2"].defaultQ, STATIONS_CONFIG["C.2"].defaultPrevQ, STATIONS_CONFIG["C.2"].defaultWL);
         renderCard("P.17", STATIONS_CONFIG["P.17"].defaultQ, STATIONS_CONFIG["P.17"].defaultPrevQ, STATIONS_CONFIG["P.17"].defaultWL);
         renderCard("N.67", STATIONS_CONFIG["N.67"].defaultQ, STATIONS_CONFIG["N.67"].defaultPrevQ, STATIONS_CONFIG["N.67"].defaultWL);
-        if (stationTag) stationTag.textContent = "(ข้อมูลสถานี: 08:00 น.)";
+        if (stationTag) stationTag.textContent = "(รอบสถานี: 09:00 น.)";
         statusText.textContent = "ข้อมูลสด LIVE";
       }
     }
 
-    // Auto-refresh telemetry every 60 seconds
-    setInterval(fetchRealtimeTelemetry, 60000);
+    const btnLiveBadge = document.getElementById("btnLiveBadge");
+    if (btnLiveBadge) {
+      btnLiveBadge.addEventListener("click", () => {
+        fetchRealtimeTelemetry();
+      });
+    }
+
+    // Auto-refresh telemetry every 30 seconds
+    setInterval(fetchRealtimeTelemetry, 30000);
 
     // Initial load
     fetchRealtimeTelemetry();
