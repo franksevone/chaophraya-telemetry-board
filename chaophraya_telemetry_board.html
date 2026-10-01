@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>ป้ายโทรมาตรเตือนภัยสถานการณ์น้ำ ลุ่มน้ำเจ้าพระยา (Real-time)</title>
   
   <!-- Tailwind CSS CDN -->
@@ -122,18 +125,18 @@
       <!-- LED Display Panel Interior -->
       <div class="led-matrix-bg rounded-xl sm:rounded-2xl border-2 border-slate-800/90 p-3 sm:p-4 md:p-5 space-y-3 sm:space-y-4">
         
-        <!-- Header Bar: Clean Live Status & Time -->
+        <!-- Header Bar: Clean Live Status & Data Time -->
         <div class="flex items-center justify-between pb-2 sm:pb-3 border-b border-slate-800/80 gap-2">
           
-          <!-- Live Indicator (Clean, no clutter next to it) -->
+          <!-- Live Indicator (Clean, without clutter next to it) -->
           <div class="flex items-center gap-2">
-            <span id="btnLiveBadge" title="คลิกเพื่อซิงก์ข้อมูลสถานีทันที" class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] sm:text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 active:scale-95 transition">
+            <span id="btnLiveBadge" title="คลิกเพื่อซิงก์ข้อมูลจาก ThaiWater ทันที" class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] sm:text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 active:scale-95 transition">
               <span class="w-2 h-2 rounded-full bg-emerald-400 live-pulse"></span>
               <span id="liveStatusText">ข้อมูลสด LIVE</span>
             </span>
           </div>
 
-          <!-- Time Display (ตรงตามเวลา 10:00 น.) -->
+          <!-- Time Display (ตรงตามเวลาสถานีจริง 100%) -->
           <div class="flex items-center gap-1.5 font-mono-num text-xs sm:text-sm md:text-base text-cyan-400 font-bold">
             <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span id="liveClockDisplay">1/10/2569 10:00 น.</span>
@@ -197,7 +200,7 @@
                 </div>
                 <div class="bg-black/50 p-1 rounded border border-slate-800/80">
                   <span class="block text-[8.5px] sm:text-[9.5px] text-slate-500">ระดับท้ายเขื่อน:</span>
-                  <span id="valDamWLDn" class="font-mono-num font-bold text-amber-300">+15.54 ม.รทก.</span>
+                  <span id="valDamWLDn" class="font-mono-num font-bold text-amber-300">+15.55 ม.รทก.</span>
                 </div>
               </div>
             </div>
@@ -221,7 +224,7 @@
             <!-- Big Glowing Digital LED Digits (สีตามความวิกฤติเทียบ 3,735) -->
             <div class="my-1.5 text-center py-1 sm:py-2 bg-slate-950/90 rounded-lg sm:rounded-xl border border-slate-800/80">
               <div id="valC2Q" class="font-digital text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight glow-led-emerald">
-                2,595
+                2,591
               </div>
               <div class="text-[9px] sm:text-[10px] md:text-[11px] font-medium text-slate-400 mt-0.5">
                 ปริมาณน้ำผ่าน C.2 (ลบ.ม./วินาที)
@@ -231,7 +234,7 @@
             <!-- Capacity & Crisis Bar -->
             <div class="my-1 p-1 sm:p-1.5 rounded bg-slate-900/80 border border-slate-800 text-[9px] sm:text-[10px] flex items-center justify-between">
               <span class="text-slate-400">จุได้สูงสุด: <strong class="text-slate-200">3,735</strong></span>
-              <span id="badgeC2Crisis" class="font-bold px-1.5 py-0.5 rounded text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/50">ปกติ (Normal) 69.5%</span>
+              <span id="badgeC2Crisis" class="font-bold px-1.5 py-0.5 rounded text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/50">ปกติ (Normal) 69.4%</span>
             </div>
 
             <!-- 1 Hour Ago Comparison & Dynamic Direction Arrow -->
@@ -245,7 +248,7 @@
                 <span class="text-[9px] sm:text-[10px] text-slate-400">การเปลี่ยนแปลง:</span>
                 <div id="diffC2QBadge" class="font-bold flex items-center gap-0.5 text-emerald-400">
                   <span id="diffC2QArrow">🔻</span>
-                  <span id="diffC2QText">ลดลง 2 (-0.1%)</span>
+                  <span id="diffC2QText">ลดลง 6 (-0.2%)</span>
                 </div>
               </div>
 
@@ -281,7 +284,7 @@
             <!-- Big Glowing Digital LED Digits (สีตามความวิกฤติเทียบ 1,835) -->
             <div class="my-1.5 text-center py-1 sm:py-2 bg-slate-950/90 rounded-lg sm:rounded-xl border border-slate-800/80">
               <div id="valP17Q" class="font-digital text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight glow-led-amber">
-                1,455
+                1,428
               </div>
               <div class="text-[9px] sm:text-[10px] md:text-[11px] font-medium text-slate-400 mt-0.5">
                 ปริมาณน้ำผ่าน P.17 (ลบ.ม./วินาที)
@@ -291,7 +294,7 @@
             <!-- Capacity & Crisis Bar -->
             <div class="my-1 p-1 sm:p-1.5 rounded bg-slate-900/80 border border-slate-800 text-[9px] sm:text-[10px] flex items-center justify-between">
               <span class="text-slate-400">จุได้สูงสุด: <strong class="text-slate-200">1,835</strong></span>
-              <span id="badgeP17Crisis" class="font-bold px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/50">เตือนภัย (Warning) 79.3%</span>
+              <span id="badgeP17Crisis" class="font-bold px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/50">เตือนภัย (Warning) 77.8%</span>
             </div>
 
             <!-- 1 Hour Ago Comparison & Dynamic Direction Arrow -->
@@ -305,7 +308,7 @@
                 <span class="text-[9px] sm:text-[10px] text-slate-400">การเปลี่ยนแปลง:</span>
                 <div id="diffP17QBadge" class="font-bold flex items-center gap-0.5 text-emerald-400">
                   <span id="diffP17QArrow">🔻</span>
-                  <span id="diffP17QText">ลดลง 5 (-0.3%)</span>
+                  <span id="diffP17QText">ลดลง 32 (-2.2%)</span>
                 </div>
               </div>
 
@@ -313,7 +316,7 @@
               <div class="grid grid-cols-2 gap-1 pt-0.5 text-[9px] sm:text-[10px] text-slate-400">
                 <div class="bg-black/50 p-1 rounded border border-slate-800/80">
                   <span class="block text-[8.5px] sm:text-[9.5px] text-slate-500">ระดับน้ำปัจจุบัน:</span>
-                  <span id="valP17WL" class="font-mono-num font-bold text-amber-300">+37.58 ม.รทก.</span>
+                  <span id="valP17WL" class="font-mono-num font-bold text-amber-300">+37.53 ม.รทก.</span>
                 </div>
                 <div class="bg-black/50 p-1 rounded border border-slate-800/80">
                   <span class="block text-[8.5px] sm:text-[9.5px] text-slate-500">ระดับตลิ่ง:</span>
@@ -341,7 +344,7 @@
             <!-- Big Glowing Digital LED Digits (สีตามความวิกฤติเทียบ 1,435) -->
             <div class="my-1.5 text-center py-1 sm:py-2 bg-slate-950/90 rounded-lg sm:rounded-xl border border-slate-800/80">
               <div id="valN67Q" class="font-digital text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight glow-led-cyan">
-                1,102
+                1,100
               </div>
               <div class="text-[9px] sm:text-[10px] md:text-[11px] font-medium text-slate-400 mt-0.5">
                 ปริมาณน้ำผ่าน N.67 (ลบ.ม./วินาที)
@@ -351,7 +354,7 @@
             <!-- Capacity & Crisis Bar -->
             <div class="my-1 p-1 sm:p-1.5 rounded bg-slate-900/80 border border-slate-800 text-[9px] sm:text-[10px] flex items-center justify-between">
               <span class="text-slate-400">จุได้สูงสุด: <strong class="text-slate-200">1,435</strong></span>
-              <span id="badgeN67Crisis" class="font-bold px-1.5 py-0.5 rounded text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/50">เฝ้าระวัง (Alert) 76.8%</span>
+              <span id="badgeN67Crisis" class="font-bold px-1.5 py-0.5 rounded text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/50">เฝ้าระวัง (Alert) 76.7%</span>
             </div>
 
             <!-- 1 Hour Ago Comparison & Dynamic Direction Arrow -->
@@ -363,9 +366,9 @@
               
               <div class="flex items-center justify-between p-1 rounded bg-slate-900/90 border border-slate-800">
                 <span class="text-[9px] sm:text-[10px] text-slate-400">การเปลี่ยนแปลง:</span>
-                <div id="diffN67QBadge" class="font-bold flex items-center gap-0.5 text-red-400">
-                  <span id="diffN67QArrow">🔺</span>
-                  <span id="diffN67QText">เพิ่มขึ้น +2 (+0.2%)</span>
+                <div id="diffN67QBadge" class="font-bold flex items-center gap-0.5 text-cyan-400">
+                  <span id="diffN67QArrow">➖</span>
+                  <span id="diffN67QText">คงที่ (0 ลบ.ม./วิ)</span>
                 </div>
               </div>
 
@@ -373,7 +376,7 @@
               <div class="grid grid-cols-2 gap-1 pt-0.5 text-[9px] sm:text-[10px] text-slate-400">
                 <div class="bg-black/50 p-1 rounded border border-slate-800/80">
                   <span class="block text-[8.5px] sm:text-[9.5px] text-slate-500">ระดับน้ำปัจจุบัน:</span>
-                  <span id="valN67WL" class="font-mono-num font-bold text-cyan-300">+26.44 ม.รทก.</span>
+                  <span id="valN67WL" class="font-mono-num font-bold text-cyan-300">+26.43 ม.รทก.</span>
                 </div>
                 <div class="bg-black/50 p-1 rounded border border-slate-800/80">
                   <span class="block text-[8.5px] sm:text-[9.5px] text-slate-500">ระดับตลิ่ง:</span>
@@ -408,7 +411,7 @@
         qmax: 2720,
         defaultQ: 2340,
         defaultPrevQ: 2320,
-        defaultWL: 15.54
+        defaultWL: 15.55
       },
       "C.2": {
         cardId: "cardC2",
@@ -420,7 +423,7 @@
         diffTextId: "diffC2QText",
         diffBadgeId: "diffC2QBadge",
         qmax: 3735,
-        defaultQ: 2595,
+        defaultQ: 2591,
         defaultPrevQ: 2597,
         defaultWL: 24.07
       },
@@ -434,9 +437,9 @@
         diffTextId: "diffP17QText",
         diffBadgeId: "diffP17QBadge",
         qmax: 1835,
-        defaultQ: 1455,
+        defaultQ: 1428,
         defaultPrevQ: 1460,
-        defaultWL: 37.58
+        defaultWL: 37.53
       },
       "N.67": {
         cardId: "cardN67",
@@ -448,9 +451,9 @@
         diffTextId: "diffN67QText",
         diffBadgeId: "diffN67QBadge",
         qmax: 1435,
-        defaultQ: 1102,
+        defaultQ: 1100,
         defaultPrevQ: 1100,
-        defaultWL: 26.44
+        defaultWL: 26.43
       }
     };
 
@@ -629,7 +632,7 @@
       // Value digits with dynamic crisis glow
       const valEl = document.getElementById(cfg.valId);
       if (valEl) {
-        valEl.textContent = currQ.toLocaleString();
+        valEl.textContent = Math.round(currQ).toLocaleString();
         valEl.className = 'font-digital text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight ' + style.glowClass;
       }
 
@@ -643,11 +646,11 @@
       // 1 hr ago
       const prevEl = document.getElementById(cfg.prevId);
       if (prevEl) {
-        prevEl.textContent = prevQ.toLocaleString() + ' ลบ.ม./วิ';
+        prevEl.textContent = Math.round(prevQ).toLocaleString() + ' ลบ.ม./วิ';
       }
 
       // Diff
-      const diffObj = calculateDiff(currQ, prevQ);
+      const diffObj = calculateDiff(Math.round(currQ), Math.round(prevQ));
       const diffArrowEl = document.getElementById(cfg.diffArrowId);
       if (diffArrowEl) diffArrowEl.textContent = diffObj.arrow;
 
@@ -673,26 +676,16 @@
       }
     }
 
-    // ================= TIME DISPLAY SYNCHRONIZATION =================
-    // แสดงผลรอบเวลาสถานการณ์น้ำ (10:00 น.) และปรับตามชั่วโมงจริง
-    function updateClockDisplay() {
-      const now = new Date();
-      const thYear = now.getFullYear() + 543;
-      const d = now.getDate();
-      const m = now.getMonth() + 1;
-      const hh = String(now.getHours()).padStart(2, '0');
-      
-      const timeStr = d + '/' + m + '/' + thYear + ' ' + hh + ':00 น.';
-      const clockEl = document.getElementById("liveClockDisplay");
-      if (clockEl) {
-        clockEl.textContent = timeStr;
-      }
+    // ================= REAL-TIME API FETCH FROM THAIWATER / RID =================
+    function formatDatetimeThai(dtStr) {
+      if (!dtStr) return "1/10/2569 10:00 น.";
+      const parts = dtStr.trim().split(" ");
+      if (parts.length < 2) return dtStr + " น.";
+      const [y, m, d] = parts[0].split("-");
+      const thYear = parseInt(y, 10) + 543;
+      return parseInt(d, 10) + '/' + parseInt(m, 10) + '/' + thYear + ' ' + parts[1] + ' น.';
     }
 
-    updateClockDisplay();
-    setInterval(updateClockDisplay, 10000);
-
-    // ================= REAL-TIME API FETCH FROM THAIWATER / RID =================
     async function fetchRealtimeTelemetry() {
       const statusText = document.getElementById("liveStatusText");
       if (statusText) statusText.textContent = "กำลังซิงก์...";
@@ -724,12 +717,18 @@
             const p17Item = findStation("P.17");
             const n67Item = findStation("N.67");
 
-            // If API has updated to >= 10:00 or has matching discharge
+            // Update Header timestamp directly from station official datetime
+            if (c13Item && c13Item.waterlevel_datetime) {
+              const clockEl = document.getElementById("liveClockDisplay");
+              if (clockEl) {
+                clockEl.textContent = formatDatetimeThai(c13Item.waterlevel_datetime);
+              }
+            }
+
             if (c13Item) {
               const apiQ = parseFloat(c13Item.discharge);
               const apiWL = parseFloat(c13Item.waterlevel_msl);
-              // Use API value if it is newer/higher or keep 10:00 baseline (2,340)
-              const q = (!isNaN(apiQ) && apiQ >= 2340) ? apiQ : STATIONS_CONFIG["C.13"].defaultQ;
+              const q = !isNaN(apiQ) ? apiQ : STATIONS_CONFIG["C.13"].defaultQ;
               const wl = !isNaN(apiWL) ? apiWL : STATIONS_CONFIG["C.13"].defaultWL;
               renderCard("C.13", q, STATIONS_CONFIG["C.13"].defaultPrevQ, wl);
             }
